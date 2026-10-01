@@ -1,0 +1,1272 @@
+{
+  "columns": [
+    {
+      "TABLE_NAME": "approval",
+      "COLUMN_NAME": "approval_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(20)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "approval",
+      "COLUMN_NAME": "approval_name",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "approval",
+      "COLUMN_NAME": "approval_content",
+      "DATA_TYPE": "text",
+      "COLUMN_TYPE": "text",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "approval_process",
+      "COLUMN_NAME": "employee_employee_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(20)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "approval_process",
+      "COLUMN_NAME": "approval_approval_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(20)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "approval_process",
+      "COLUMN_NAME": "approval_process_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "approval_process",
+      "COLUMN_NAME": "approval_date",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "approval_process",
+      "COLUMN_NAME": "director_approval",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "approval_process",
+      "COLUMN_NAME": "team_leader_approval",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "approval_process",
+      "COLUMN_NAME": "approval_status",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "approval_process",
+      "COLUMN_NAME": "processed_at",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "authentication",
+      "COLUMN_NAME": "user_user_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(12)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "authentication",
+      "COLUMN_NAME": "employee_employee_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(20)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "authentication",
+      "COLUMN_NAME": "authentication_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "authentication",
+      "COLUMN_NAME": "authentication_date",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "cart",
+      "COLUMN_NAME": "user_user_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(12)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "cart",
+      "COLUMN_NAME": "shoe_shoe_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(20)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "cart",
+      "COLUMN_NAME": "cart_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "cart",
+      "COLUMN_NAME": "added_at",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "employee",
+      "COLUMN_NAME": "employee_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(20)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "employee",
+      "COLUMN_NAME": "employee_pw",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "employee",
+      "COLUMN_NAME": "employee_position",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "employee",
+      "COLUMN_NAME": "employee_name",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "employee",
+      "COLUMN_NAME": "employee_department",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "get_order",
+      "COLUMN_NAME": "shoe_shoe_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(20)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "get_order",
+      "COLUMN_NAME": "employee_employee_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(20)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "get_order",
+      "COLUMN_NAME": "get_order_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "get_order",
+      "COLUMN_NAME": "get_order_quantity",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "get_order",
+      "COLUMN_NAME": "get_order_status",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "get_order",
+      "COLUMN_NAME": "get_order_date",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "get_order",
+      "COLUMN_NAME": "shoe_manufacturer_manufacturer_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(20)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "manufacturing",
+      "COLUMN_NAME": "shoe_shoe_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(20)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "manufacturing",
+      "COLUMN_NAME": "shoe_manufacturer_manufacturer_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(20)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "manufacturing",
+      "COLUMN_NAME": "manufacturing_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "manufacturing",
+      "COLUMN_NAME": "manufacturing_date",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "payment",
+      "COLUMN_NAME": "user_user_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(12)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "payment",
+      "COLUMN_NAME": "employee_employee_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(20)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "payment",
+      "COLUMN_NAME": "payment_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "payment",
+      "COLUMN_NAME": "payment_date",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "payment",
+      "COLUMN_NAME": "payment_amount",
+      "DATA_TYPE": "int",
+      "COLUMN_TYPE": "int",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "payment",
+      "COLUMN_NAME": "payment_status",
+      "DATA_TYPE": "tinyint",
+      "COLUMN_TYPE": "tinyint",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "payment",
+      "COLUMN_NAME": "discount_flag",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "purchase",
+      "COLUMN_NAME": "shoe_shoe_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(20)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "purchase",
+      "COLUMN_NAME": "user_user_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(12)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "purchase",
+      "COLUMN_NAME": "purchase_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "purchase",
+      "COLUMN_NAME": "sale_price",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "purchase",
+      "COLUMN_NAME": "payment_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "purchase",
+      "COLUMN_NAME": "quantity",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "purchase_order",
+      "COLUMN_NAME": "shoe_manufacturer_manufacturer_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(20)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "purchase_order",
+      "COLUMN_NAME": "approval_approval_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(20)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "purchase_order",
+      "COLUMN_NAME": "order_date",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "purchase_order",
+      "COLUMN_NAME": "get_amount",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "purchase_order",
+      "COLUMN_NAME": "order_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "purchase_order",
+      "COLUMN_NAME": "order_quantity",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "purchase_order",
+      "COLUMN_NAME": "shoe_shoe_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(20)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "recall",
+      "COLUMN_NAME": "store_store_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(20)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "recall",
+      "COLUMN_NAME": "user_user_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(12)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "recall",
+      "COLUMN_NAME": "recall_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "recall",
+      "COLUMN_NAME": "recall_date",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "recall",
+      "COLUMN_NAME": "recall_quantity",
+      "DATA_TYPE": "int",
+      "COLUMN_TYPE": "int",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "recall",
+      "COLUMN_NAME": "employee_employee_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(20)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "receive",
+      "COLUMN_NAME": "store_store_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(20)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "receive",
+      "COLUMN_NAME": "user_user_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(12)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "receive",
+      "COLUMN_NAME": "employee_employee_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(20)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "receive",
+      "COLUMN_NAME": "receive_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "receive",
+      "COLUMN_NAME": "receive_date",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "receive",
+      "COLUMN_NAME": "receive_quantity",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "receive",
+      "COLUMN_NAME": "receive_verification_code",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "receive",
+      "COLUMN_NAME": "receive_status",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "receive",
+      "COLUMN_NAME": "receive_verification_status",
+      "DATA_TYPE": "tinyint",
+      "COLUMN_TYPE": "tinyint",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "receive",
+      "COLUMN_NAME": "receive_expdate",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "receive",
+      "COLUMN_NAME": "receive_payment_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "refund",
+      "COLUMN_NAME": "user_user_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(12)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "refund",
+      "COLUMN_NAME": "employee_employee_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(20)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "refund",
+      "COLUMN_NAME": "refund_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "refund",
+      "COLUMN_NAME": "refund_amount",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "refund",
+      "COLUMN_NAME": "refund_quantity",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "refund",
+      "COLUMN_NAME": "refund_reason",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "refund",
+      "COLUMN_NAME": "refund_cardnumber",
+      "DATA_TYPE": "int",
+      "COLUMN_TYPE": "int",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "return_record",
+      "COLUMN_NAME": "shoe_shoe_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(20)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "return_record",
+      "COLUMN_NAME": "employee_employee_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(20)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "return_record",
+      "COLUMN_NAME": "return_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "return_record",
+      "COLUMN_NAME": "return_date",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "shipment",
+      "COLUMN_NAME": "shoe_shoe_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(20)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "shipment",
+      "COLUMN_NAME": "employee_employee_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(20)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "shipment",
+      "COLUMN_NAME": "shipment_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "shipment",
+      "COLUMN_NAME": "delivery_status",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "shipment",
+      "COLUMN_NAME": "delivery_quantity",
+      "DATA_TYPE": "int",
+      "COLUMN_TYPE": "int",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "shipment",
+      "COLUMN_NAME": "store_store_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(20)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "shoe",
+      "COLUMN_NAME": "shoe_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(20)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "shoe",
+      "COLUMN_NAME": "brand_name",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "shoe",
+      "COLUMN_NAME": "shoe_price",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "shoe",
+      "COLUMN_NAME": "standard_stock",
+      "DATA_TYPE": "int",
+      "COLUMN_TYPE": "int",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "shoe",
+      "COLUMN_NAME": "stock_quantity",
+      "DATA_TYPE": "int",
+      "COLUMN_TYPE": "int",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "shoe_manufacturer",
+      "COLUMN_NAME": "manufacturer_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(20)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "shoe_manufacturer",
+      "COLUMN_NAME": "manufacturer_name",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "store",
+      "COLUMN_NAME": "store_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(20)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "store",
+      "COLUMN_NAME": "latitude",
+      "DATA_TYPE": "decimal",
+      "COLUMN_TYPE": "decimal(10,7)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "store",
+      "COLUMN_NAME": "longitude",
+      "DATA_TYPE": "decimal",
+      "COLUMN_TYPE": "decimal(10,7)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "store",
+      "COLUMN_NAME": "district_name",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "store",
+      "COLUMN_NAME": "agency_name",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "store",
+      "COLUMN_NAME": "phone",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(12)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "user",
+      "COLUMN_NAME": "user_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(12)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "user",
+      "COLUMN_NAME": "user_name",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "user",
+      "COLUMN_NAME": "user_phone",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(20)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "user",
+      "COLUMN_NAME": "user_pw",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "user",
+      "COLUMN_NAME": "user_email",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    },
+    {
+      "TABLE_NAME": "user",
+      "COLUMN_NAME": "join_date",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "",
+      "EXTRA": ""
+    }
+  ],
+  "foreign_keys": [
+    {
+      "TABLE_NAME": "approval_process",
+      "COLUMN_NAME": "approval_approval_id",
+      "REFERENCED_TABLE_NAME": "approval",
+      "REFERENCED_COLUMN_NAME": "approval_id"
+    },
+    {
+      "TABLE_NAME": "approval_process",
+      "COLUMN_NAME": "employee_employee_id",
+      "REFERENCED_TABLE_NAME": "employee",
+      "REFERENCED_COLUMN_NAME": "employee_id"
+    },
+    {
+      "TABLE_NAME": "authentication",
+      "COLUMN_NAME": "employee_employee_id",
+      "REFERENCED_TABLE_NAME": "employee",
+      "REFERENCED_COLUMN_NAME": "employee_id"
+    },
+    {
+      "TABLE_NAME": "authentication",
+      "COLUMN_NAME": "user_user_id",
+      "REFERENCED_TABLE_NAME": "user",
+      "REFERENCED_COLUMN_NAME": "user_id"
+    },
+    {
+      "TABLE_NAME": "cart",
+      "COLUMN_NAME": "shoe_shoe_id",
+      "REFERENCED_TABLE_NAME": "shoe",
+      "REFERENCED_COLUMN_NAME": "shoe_id"
+    },
+    {
+      "TABLE_NAME": "cart",
+      "COLUMN_NAME": "user_user_id",
+      "REFERENCED_TABLE_NAME": "user",
+      "REFERENCED_COLUMN_NAME": "user_id"
+    },
+    {
+      "TABLE_NAME": "get_order",
+      "COLUMN_NAME": "shoe_manufacturer_manufacturer_id",
+      "REFERENCED_TABLE_NAME": "shoe_manufacturer",
+      "REFERENCED_COLUMN_NAME": "manufacturer_id"
+    },
+    {
+      "TABLE_NAME": "get_order",
+      "COLUMN_NAME": "employee_employee_id",
+      "REFERENCED_TABLE_NAME": "employee",
+      "REFERENCED_COLUMN_NAME": "employee_id"
+    },
+    {
+      "TABLE_NAME": "get_order",
+      "COLUMN_NAME": "shoe_shoe_id",
+      "REFERENCED_TABLE_NAME": "shoe",
+      "REFERENCED_COLUMN_NAME": "shoe_id"
+    },
+    {
+      "TABLE_NAME": "manufacturing",
+      "COLUMN_NAME": "shoe_shoe_id",
+      "REFERENCED_TABLE_NAME": "shoe",
+      "REFERENCED_COLUMN_NAME": "shoe_id"
+    },
+    {
+      "TABLE_NAME": "manufacturing",
+      "COLUMN_NAME": "shoe_manufacturer_manufacturer_id",
+      "REFERENCED_TABLE_NAME": "shoe_manufacturer",
+      "REFERENCED_COLUMN_NAME": "manufacturer_id"
+    },
+    {
+      "TABLE_NAME": "payment",
+      "COLUMN_NAME": "employee_employee_id",
+      "REFERENCED_TABLE_NAME": "employee",
+      "REFERENCED_COLUMN_NAME": "employee_id"
+    },
+    {
+      "TABLE_NAME": "payment",
+      "COLUMN_NAME": "user_user_id",
+      "REFERENCED_TABLE_NAME": "user",
+      "REFERENCED_COLUMN_NAME": "user_id"
+    },
+    {
+      "TABLE_NAME": "purchase",
+      "COLUMN_NAME": "shoe_shoe_id",
+      "REFERENCED_TABLE_NAME": "shoe",
+      "REFERENCED_COLUMN_NAME": "shoe_id"
+    },
+    {
+      "TABLE_NAME": "purchase",
+      "COLUMN_NAME": "user_user_id",
+      "REFERENCED_TABLE_NAME": "user",
+      "REFERENCED_COLUMN_NAME": "user_id"
+    },
+    {
+      "TABLE_NAME": "purchase_order",
+      "COLUMN_NAME": "shoe_shoe_id",
+      "REFERENCED_TABLE_NAME": "shoe",
+      "REFERENCED_COLUMN_NAME": "shoe_id"
+    },
+    {
+      "TABLE_NAME": "purchase_order",
+      "COLUMN_NAME": "approval_approval_id",
+      "REFERENCED_TABLE_NAME": "approval",
+      "REFERENCED_COLUMN_NAME": "approval_id"
+    },
+    {
+      "TABLE_NAME": "purchase_order",
+      "COLUMN_NAME": "shoe_manufacturer_manufacturer_id",
+      "REFERENCED_TABLE_NAME": "shoe_manufacturer",
+      "REFERENCED_COLUMN_NAME": "manufacturer_id"
+    },
+    {
+      "TABLE_NAME": "recall",
+      "COLUMN_NAME": "employee_employee_id",
+      "REFERENCED_TABLE_NAME": "employee",
+      "REFERENCED_COLUMN_NAME": "employee_id"
+    },
+    {
+      "TABLE_NAME": "recall",
+      "COLUMN_NAME": "store_store_id",
+      "REFERENCED_TABLE_NAME": "store",
+      "REFERENCED_COLUMN_NAME": "store_id"
+    },
+    {
+      "TABLE_NAME": "recall",
+      "COLUMN_NAME": "user_user_id",
+      "REFERENCED_TABLE_NAME": "user",
+      "REFERENCED_COLUMN_NAME": "user_id"
+    },
+    {
+      "TABLE_NAME": "receive",
+      "COLUMN_NAME": "employee_employee_id",
+      "REFERENCED_TABLE_NAME": "employee",
+      "REFERENCED_COLUMN_NAME": "employee_id"
+    },
+    {
+      "TABLE_NAME": "receive",
+      "COLUMN_NAME": "store_store_id",
+      "REFERENCED_TABLE_NAME": "store",
+      "REFERENCED_COLUMN_NAME": "store_id"
+    },
+    {
+      "TABLE_NAME": "receive",
+      "COLUMN_NAME": "user_user_id",
+      "REFERENCED_TABLE_NAME": "user",
+      "REFERENCED_COLUMN_NAME": "user_id"
+    },
+    {
+      "TABLE_NAME": "refund",
+      "COLUMN_NAME": "employee_employee_id",
+      "REFERENCED_TABLE_NAME": "employee",
+      "REFERENCED_COLUMN_NAME": "employee_id"
+    },
+    {
+      "TABLE_NAME": "refund",
+      "COLUMN_NAME": "user_user_id",
+      "REFERENCED_TABLE_NAME": "user",
+      "REFERENCED_COLUMN_NAME": "user_id"
+    },
+    {
+      "TABLE_NAME": "return_record",
+      "COLUMN_NAME": "employee_employee_id",
+      "REFERENCED_TABLE_NAME": "employee",
+      "REFERENCED_COLUMN_NAME": "employee_id"
+    },
+    {
+      "TABLE_NAME": "return_record",
+      "COLUMN_NAME": "shoe_shoe_id",
+      "REFERENCED_TABLE_NAME": "shoe",
+      "REFERENCED_COLUMN_NAME": "shoe_id"
+    },
+    {
+      "TABLE_NAME": "shipment",
+      "COLUMN_NAME": "store_store_id",
+      "REFERENCED_TABLE_NAME": "store",
+      "REFERENCED_COLUMN_NAME": "store_id"
+    },
+    {
+      "TABLE_NAME": "shipment",
+      "COLUMN_NAME": "employee_employee_id",
+      "REFERENCED_TABLE_NAME": "employee",
+      "REFERENCED_COLUMN_NAME": "employee_id"
+    },
+    {
+      "TABLE_NAME": "shipment",
+      "COLUMN_NAME": "shoe_shoe_id",
+      "REFERENCED_TABLE_NAME": "shoe",
+      "REFERENCED_COLUMN_NAME": "shoe_id"
+    }
+  ]
+}
