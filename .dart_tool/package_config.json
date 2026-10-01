@@ -146,6 +146,12 @@
       "languageVersion": "3.10"
     },
     {
+      "name": "get",
+      "rootUri": "file:///C:/Users/mega/AppData/Local/Pub/Cache/hosted/pub.dev/get-4.7.3",
+      "packageUri": "lib/",
+      "languageVersion": "2.15"
+    },
+    {
       "name": "http",
       "rootUri": "file:///C:/Users/mega/AppData/Local/Pub/Cache/hosted/pub.dev/http-1.6.0",
       "packageUri": "lib/",

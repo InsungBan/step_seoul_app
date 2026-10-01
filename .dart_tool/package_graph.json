@@ -13,6 +13,7 @@
         "firebase_messaging",
         "firebase_storage",
         "flutter",
+        "get",
         "http",
         "path",
         "sqflite"
@@ -118,6 +119,14 @@
         "async",
         "http_parser",
         "meta",
+        "web"
+      ]
+    },
+    {
+      "name": "get",
+      "version": "4.7.3",
+      "dependencies": [
+        "flutter",
         "web"
       ]
     },

@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:step_seoul_app/view/auth/login.dart';
+import 'package:step_seoul_app/view/auth/auth_gate.dart';
+import 'package:get/get.dart';
 
 import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   runApp(const MyApp());
 }
@@ -20,12 +19,22 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
+    return GetMaterialApp(
+      title: 'STEP SEOUL',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
+        scaffoldBackgroundColor: const Color(0xFFA7B8DA), // 배경 파스텔 톤
+        fontFamily: 'Pretendard',
       ),
-      home: const Login(),
+      initialRoute: '/',
+      getPages: [
+        GetPage(name: '/', page: () => const AuthGate()),
+        GetPage(name: '/login', page: () => const Login()),
+        // GetPage(name: '/register', page: () => const Register()),
+        // GetPage(name: '/customer/home', page: () => const CustomerHome()),
+        // GetPage(name: '/employee/work_home', page: () => const EmployeeWorkHome()),
+        // GetPage(name: '/executive/dashboard', page: () => const ExecutiveDashboard()),
+      ],
     );
   }
 }
