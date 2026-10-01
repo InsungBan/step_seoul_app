@@ -9,9 +9,9 @@
       "dependencies": [
         "cloud_firestore",
         "cupertino_icons",
-        "firebase_auth",
         "firebase_core",
         "firebase_messaging",
+        "firebase_storage",
         "flutter",
         "http",
         "path",
@@ -48,6 +48,18 @@
       ]
     },
     {
+      "name": "firebase_storage",
+      "version": "13.6.0",
+      "dependencies": [
+        "firebase_core",
+        "firebase_core_platform_interface",
+        "firebase_storage_platform_interface",
+        "firebase_storage_web",
+        "flutter",
+        "mime"
+      ]
+    },
+    {
       "name": "firebase_messaging",
       "version": "16.7.0",
       "dependencies": [
@@ -66,18 +78,6 @@
         "cloud_firestore_platform_interface",
         "cloud_firestore_web",
         "collection",
-        "firebase_core",
-        "firebase_core_platform_interface",
-        "flutter",
-        "meta"
-      ]
-    },
-    {
-      "name": "firebase_auth",
-      "version": "6.7.0",
-      "dependencies": [
-        "firebase_auth_platform_interface",
-        "firebase_auth_web",
         "firebase_core",
         "firebase_core_platform_interface",
         "flutter",
@@ -223,6 +223,49 @@
       ]
     },
     {
+      "name": "mime",
+      "version": "2.1.0",
+      "dependencies": []
+    },
+    {
+      "name": "firebase_storage_web",
+      "version": "3.11.13",
+      "dependencies": [
+        "_flutterfire_internals",
+        "async",
+        "firebase_core",
+        "firebase_core_web",
+        "firebase_storage_platform_interface",
+        "flutter",
+        "flutter_web_plugins",
+        "http",
+        "meta",
+        "web"
+      ]
+    },
+    {
+      "name": "firebase_storage_platform_interface",
+      "version": "6.0.7",
+      "dependencies": [
+        "_flutterfire_internals",
+        "collection",
+        "firebase_core",
+        "flutter",
+        "meta",
+        "plugin_platform_interface"
+      ]
+    },
+    {
+      "name": "firebase_core_platform_interface",
+      "version": "8.1.1",
+      "dependencies": [
+        "collection",
+        "flutter",
+        "meta",
+        "plugin_platform_interface"
+      ]
+    },
+    {
       "name": "firebase_messaging_web",
       "version": "4.2.5",
       "dependencies": [
@@ -242,16 +285,6 @@
       "dependencies": [
         "_flutterfire_internals",
         "firebase_core",
-        "flutter",
-        "meta",
-        "plugin_platform_interface"
-      ]
-    },
-    {
-      "name": "firebase_core_platform_interface",
-      "version": "8.1.1",
-      "dependencies": [
-        "collection",
         "flutter",
         "meta",
         "plugin_platform_interface"
@@ -278,33 +311,6 @@
         "collection",
         "firebase_core",
         "flutter",
-        "meta",
-        "plugin_platform_interface"
-      ]
-    },
-    {
-      "name": "firebase_auth_web",
-      "version": "6.3.0",
-      "dependencies": [
-        "firebase_auth_platform_interface",
-        "firebase_core",
-        "firebase_core_web",
-        "flutter",
-        "flutter_web_plugins",
-        "http_parser",
-        "meta",
-        "web"
-      ]
-    },
-    {
-      "name": "firebase_auth_platform_interface",
-      "version": "9.1.0",
-      "dependencies": [
-        "_flutterfire_internals",
-        "collection",
-        "firebase_core",
-        "flutter",
-        "http",
         "meta",
         "plugin_platform_interface"
       ]
