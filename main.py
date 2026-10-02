@@ -4,6 +4,7 @@ from routers.approval import router as approval_router
 from routers.approval_process import router as approval_process_router
 from routers.authentication import router as authentication_router
 from routers.cart import router as cart_router
+from routers.checkout import router as checkout_router
 from routers.employee import router as employee_router
 from routers.get_order import router as get_order_router
 from routers.manufacturing import router as manufacturing_router
@@ -19,13 +20,20 @@ from routers.shoe import router as shoe_router
 from routers.shoe_manufacturer import router as shoe_manufacturer_router
 from routers.store import router as store_router
 from routers.user import router as user_router
+from services.shoe_service import ensure_shoe_category_column
 
 app = FastAPI(title="STEP SEOUL API", version="1.0.0")
+
+
+@app.on_event("startup")
+def initialize_schema():
+    ensure_shoe_category_column()
 
 app.include_router(approval_router)
 app.include_router(approval_process_router)
 app.include_router(authentication_router)
 app.include_router(cart_router)
+app.include_router(checkout_router)
 app.include_router(employee_router)
 app.include_router(get_order_router)
 app.include_router(manufacturing_router)

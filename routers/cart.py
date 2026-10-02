@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Form
 
-from services.cart_service import create_cart, read_cart, update_cart, delete_cart
+from services.cart_service import create_cart, read_cart, read_cart_for_user, update_cart, delete_cart
 
 router = APIRouter(prefix="/cart", tags=["cart"])
 
@@ -18,6 +18,11 @@ def upload(
 @router.get("/select")
 def select():
     return read_cart()
+
+
+@router.get("/select/user/{user_id}")
+def select_for_user(user_id: str):
+    return read_cart_for_user(user_id)
 
 
 @router.put("/update/{user_user_id}/{shoe_shoe_id}/{cart_id}")

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Form
 
-from services.purchase_service import create_purchase, read_purchase, update_purchase, delete_purchase
+from services.purchase_service import create_purchase, read_purchase, read_purchase_for_user, update_purchase, delete_purchase
 
 router = APIRouter(prefix="/purchase", tags=["purchase"])
 
@@ -20,6 +20,11 @@ def upload(
 @router.get("/select")
 def select():
     return read_purchase()
+
+
+@router.get("/select/user/{user_id}")
+def select_for_user(user_id: str):
+    return read_purchase_for_user(user_id)
 
 
 @router.put("/update/{shoe_shoe_id}/{user_user_id}/{purchase_id}")
