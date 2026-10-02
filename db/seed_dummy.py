@@ -97,9 +97,9 @@ def build_rows():
     return rows
 
 
-def seed(apply=False):
+def seed(apply=False, rows=None):
     schema = json.loads(Path(__file__).with_name('schema.json').read_text(encoding='utf-8'))
-    rows = build_rows()
+    rows = build_rows() if rows is None else rows
     connection = db()
     try:
         with connection.cursor() as cursor:
@@ -111,11 +111,17 @@ def seed(apply=False):
             report = {}
             for table, records in rows.items():
                 cursor.execute(f'SHOW COLUMNS FROM `{table}`')
-                actual = {row[0] for row in cursor.fetchall()}
+                definitions = cursor.fetchall()
+                actual = {row[0] for row in definitions}
                 expected = {column['COLUMN_NAME'] for column in schema['columns']
                             if column['TABLE_NAME'] == table}
-                if actual != expected:
-                    raise RuntimeError(f'Schema changed for {table}; review before seeding.')
+                if not expected.issubset(actual):
+                    raise RuntimeError(f'Required columns changed for {table}; review before seeding.')
+                for definition in definitions:
+                    if definition[0] not in expected and definition[2] == 'NO' and definition[4] is None and 'auto_increment' not in definition[5]:
+                        raise RuntimeError(f'New required column in {table}: {definition[0]}')
+                if any(not set(record).issubset(actual) for record in records):
+                    raise RuntimeError(f'Unknown sample columns for {table}')
                 keys = [column['COLUMN_NAME'] for column in schema['columns']
                         if column['TABLE_NAME'] == table and column['COLUMN_KEY'] == 'PRI']
                 cursor.execute(f'SELECT COUNT(*) FROM `{table}`')
@@ -138,7 +144,7 @@ def seed(apply=False):
                 if after != before + inserted:
                     raise RuntimeError(f'Unexpected row count for {table}')
                 report[table] = dict(before=before, inserted=inserted, skipped=skipped, after=after)
-            # Check every declared foreign key, limited to our five demo rows.
+            # Check every declared foreign key, limited to the requested sample rows.
             for fk in schema['foreign_keys']:
                 for record in rows[fk['TABLE_NAME']]:
                     cursor.execute(

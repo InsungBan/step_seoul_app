@@ -1,0 +1,106 @@
+{
+  "committed": true,
+  "as_of": "2026-10-02",
+  "tables": {
+    "user": {
+      "before": 0,
+      "inserted": 40,
+      "after": 40
+    },
+    "employee": {
+      "before": 0,
+      "inserted": 9,
+      "after": 9
+    },
+    "shoe_manufacturer": {
+      "before": 0,
+      "inserted": 6,
+      "after": 6
+    },
+    "shoe": {
+      "before": 0,
+      "inserted": 32,
+      "after": 32
+    },
+    "store": {
+      "before": 0,
+      "inserted": 8,
+      "after": 8
+    },
+    "approval": {
+      "before": 0,
+      "inserted": 24,
+      "after": 24
+    },
+    "approval_process": {
+      "before": 0,
+      "inserted": 24,
+      "after": 24
+    },
+    "authentication": {
+      "before": 0,
+      "inserted": 44,
+      "after": 44
+    },
+    "cart": {
+      "before": 0,
+      "inserted": 96,
+      "after": 96
+    },
+    "get_order": {
+      "before": 0,
+      "inserted": 12,
+      "after": 12
+    },
+    "manufacturing": {
+      "before": 0,
+      "inserted": 32,
+      "after": 32
+    },
+    "payment": {
+      "before": 0,
+      "inserted": 96,
+      "after": 96
+    },
+    "purchase": {
+      "before": 0,
+      "inserted": 96,
+      "after": 96
+    },
+    "purchase_order": {
+      "before": 0,
+      "inserted": 12,
+      "after": 12
+    },
+    "recall": {
+      "before": 0,
+      "inserted": 12,
+      "after": 12
+    },
+    "receive": {
+      "before": 0,
+      "inserted": 63,
+      "after": 63
+    },
+    "refund": {
+      "before": 0,
+      "inserted": 8,
+      "after": 8
+    },
+    "return_record": {
+      "before": 0,
+      "inserted": 16,
+      "after": 16
+    },
+    "shipment": {
+      "before": 0,
+      "inserted": 82,
+      "after": 82
+    },
+    "employee_operations_state": {
+      "before": 0,
+      "inserted": 3,
+      "after": 3
+    }
+  }
+}

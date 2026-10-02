@@ -481,6 +481,16 @@
       "EXTRA": ""
     },
     {
+      "TABLE_NAME": "purchase",
+      "COLUMN_NAME": "store_store_id",
+      "DATA_TYPE": "varchar",
+      "COLUMN_TYPE": "varchar(20)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_KEY": "PRI",
+      "EXTRA": ""
+    },
+    {
       "TABLE_NAME": "purchase_order",
       "COLUMN_NAME": "shoe_manufacturer_manufacturer_id",
       "DATA_TYPE": "varchar",
@@ -1267,6 +1277,12 @@
       "COLUMN_NAME": "shoe_shoe_id",
       "REFERENCED_TABLE_NAME": "shoe",
       "REFERENCED_COLUMN_NAME": "shoe_id"
+    },
+    {
+      "TABLE_NAME": "purchase",
+      "COLUMN_NAME": "store_store_id",
+      "REFERENCED_TABLE_NAME": "store",
+      "REFERENCED_COLUMN_NAME": "store_id"
     }
   ]
 }

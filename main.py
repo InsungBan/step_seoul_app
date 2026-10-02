@@ -1,4 +1,8 @@
+import os
+
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from routers.hq import router as hq_router
 
 from routers.approval import router as approval_router
 from routers.approval_process import router as approval_process_router
@@ -22,6 +26,13 @@ from routers.user import router as user_router
 
 app = FastAPI(title="STEP SEOUL API", version="1.0.0")
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origin_regex=os.getenv("HQ_CORS_ORIGIN_REGEX", r"https?://(localhost|127\.0\.0\.1|192\.168\.10\.39)(:\d+)?"),
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
+)
+app.include_router(hq_router)
 app.include_router(approval_router)
 app.include_router(approval_process_router)
 app.include_router(authentication_router)
@@ -51,4 +62,4 @@ def root():
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("main:app", host="192.168.10.39", port=8000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
