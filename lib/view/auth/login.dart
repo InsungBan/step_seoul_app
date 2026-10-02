@@ -4,15 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:step_seoul_app/services/session_service.dart';
+import 'package:step_seoul_app/services/api_config.dart';
 import 'package:step_seoul_app/view/auth/register.dart';
 import 'package:step_seoul_app/view/customer/home.dart';
 import 'package:step_seoul_app/view/employee/work_home.dart';
 import 'package:step_seoul_app/view/executive/executive_dashboard.dart';
 
-const _apiBaseUrl = String.fromEnvironment(
-  'API_BASE_URL',
-  defaultValue: 'http://192.168.10.40:8000',
-);
+const _apiBaseUrl = ApiConfig.baseUrl;
 const _blue = Color(0xFF2F67E8);
 const _navy = Color(0xFF102455);
 const _muted = Color(0xFF71829C);

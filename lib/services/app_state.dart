@@ -278,6 +278,216 @@ class MockDatabase extends ChangeNotifier {
       .length;
   int get unreadCount => _unread;
 
+  Map<String, dynamic> exportState() => {
+    'schemaVersion': 1,
+    'unreadCount': _unread,
+    'products': products
+        .map(
+          (p) => {
+            'id': p.id,
+            'name': p.name,
+            'option': p.option,
+            'code': p.code,
+            'category': p.category,
+            'stock': p.stock,
+            'target': p.target,
+            'sold': p.sold,
+            'todaySold': p.todaySold,
+            'safetyStock': p.safetyStock,
+            'status': p.status.name,
+            'lastInbound': p.lastInbound?.toIso8601String(),
+          },
+        )
+        .toList(),
+    'orders': orders
+        .map(
+          (o) => {
+            'id': o.id,
+            'orderCode': o.orderCode,
+            'customer': o.customer,
+            'phone': o.phone,
+            'productId': o.productId,
+            'orderedAt': o.orderedAt.toIso8601String(),
+            'expectedAt': o.expectedAt.toIso8601String(),
+            'status': o.status.name,
+            'quantity': o.quantity,
+            'address': o.address,
+          },
+        )
+        .toList(),
+    'pickups': pickups
+        .map(
+          (p) => {
+            'id': p.id,
+            'orderId': p.orderId,
+            'arrivedAt': p.arrivedAt.toIso8601String(),
+            'status': p.status.name,
+            'contacted': p.contacted,
+            'quantity': p.quantity,
+            'completedAt': p.completedAt?.toIso8601String(),
+          },
+        )
+        .toList(),
+    'returns': returns
+        .map(
+          (r) => {
+            'id': r.id,
+            'orderId': r.orderId,
+            'reason': r.reason,
+            'detailReason': r.detailReason,
+            'note': r.note,
+            'status': r.status.name,
+            'requestedAt': r.requestedAt.toIso8601String(),
+            'inspectionResult': r.inspectionResult,
+            'recallRequested': r.recallRequested,
+            'contacted': r.contacted,
+          },
+        )
+        .toList(),
+    'inboundReceipts': inboundReceipts
+        .map((date) => date.toIso8601String())
+        .toList(),
+    'logs': logs
+        .map(
+          (item) => {
+            'id': item.id,
+            'type': item.type,
+            'message': item.message,
+            'customer': item.customer,
+            'product': item.product,
+            'option': item.option,
+            'phone': item.phone,
+            'code': item.code,
+            'quantity': item.quantity,
+            'staff': item.staff,
+            'amount': item.amount,
+            'note': item.note,
+            'createdAt': item.createdAt.toIso8601String(),
+          },
+        )
+        .toList(),
+  };
+
+  void restoreState(Map<String, dynamic> state) {
+    if (state['schemaVersion'] != 1) {
+      throw const FormatException('Unsupported employee state version');
+    }
+    final productStatuses = {
+      for (final item in ProductStatus.values) item.name: item,
+    };
+    final deliveryStatuses = {
+      for (final item in DeliveryStatus.values) item.name: item,
+    };
+    final pickupStatuses = {
+      for (final item in PickupStatus.values) item.name: item,
+    };
+    final returnStatuses = {
+      for (final item in ReturnStatus.values) item.name: item,
+    };
+    List<Map<String, dynamic>> rows(String key) => (state[key] as List<dynamic>)
+        .map((item) => Map<String, dynamic>.from(item as Map))
+        .toList();
+    DateTime date(Map<String, dynamic> row, String key) =>
+        DateTime.parse(row[key] as String);
+    int number(Map<String, dynamic> row, String key) =>
+        (row[key] as num).toInt();
+
+    products = rows('products')
+        .map(
+          (row) => MockProduct(
+            id: row['id'] as String,
+            name: row['name'] as String,
+            option: row['option'] as String,
+            code: row['code'] as String,
+            category: row['category'] as String,
+            stock: number(row, 'stock'),
+            target: number(row, 'target'),
+            sold: number(row, 'sold'),
+            todaySold: number(row, 'todaySold'),
+            safetyStock: number(row, 'safetyStock'),
+            status: productStatuses[row['status']]!,
+            lastInbound: row['lastInbound'] == null
+                ? null
+                : DateTime.parse(row['lastInbound'] as String),
+          ),
+        )
+        .toList();
+    orders = rows('orders')
+        .map(
+          (row) => MockOrder(
+            id: row['id'] as String,
+            orderCode: row['orderCode'] as String,
+            customer: row['customer'] as String,
+            phone: row['phone'] as String,
+            productId: row['productId'] as String,
+            orderedAt: date(row, 'orderedAt'),
+            expectedAt: date(row, 'expectedAt'),
+            status: deliveryStatuses[row['status']]!,
+            quantity: number(row, 'quantity'),
+            address: row['address'] as String,
+          ),
+        )
+        .toList();
+    pickups = rows('pickups')
+        .map(
+          (row) => MockPickup(
+            id: row['id'] as String,
+            orderId: row['orderId'] as String,
+            arrivedAt: date(row, 'arrivedAt'),
+            status: pickupStatuses[row['status']]!,
+            contacted: row['contacted'] as bool,
+            quantity: number(row, 'quantity'),
+            completedAt: row['completedAt'] == null
+                ? null
+                : DateTime.parse(row['completedAt'] as String),
+          ),
+        )
+        .toList();
+    returns = rows('returns')
+        .map(
+          (row) => MockReturn(
+            id: row['id'] as String,
+            orderId: row['orderId'] as String,
+            reason: row['reason'] as String,
+            detailReason: row['detailReason'] as String,
+            note: row['note'] as String,
+            status: returnStatuses[row['status']]!,
+            requestedAt: date(row, 'requestedAt'),
+            inspectionResult: row['inspectionResult'] as String,
+            recallRequested: row['recallRequested'] as bool,
+            contacted: row['contacted'] as bool,
+          ),
+        )
+        .toList();
+    inboundReceipts = (state['inboundReceipts'] as List<dynamic>)
+        .map((item) => DateTime.parse(item as String))
+        .toList();
+    logs = rows('logs')
+        .map(
+          (row) => WorkActivity(
+            id: number(row, 'id'),
+            type: row['type'] as String,
+            message: row['message'] as String,
+            customer: row['customer'] as String,
+            product: row['product'] as String,
+            option: row['option'] as String,
+            phone: row['phone'] as String,
+            code: row['code'] as String,
+            quantity: number(row, 'quantity'),
+            staff: row['staff'] as String,
+            amount: number(row, 'amount'),
+            note: row['note'] as String,
+            createdAt: date(row, 'createdAt'),
+          ),
+        )
+        .toList();
+    _unread = (state['unreadCount'] as num?)?.toInt() ?? 0;
+    _nextLogId =
+        logs.fold<int>(0, (maxId, item) => item.id > maxId ? item.id : maxId) +
+        1;
+    notifyListeners();
+  }
+
   void reset({bool notify = true}) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
