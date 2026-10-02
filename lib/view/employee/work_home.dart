@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:step_seoul_app/services/session_service.dart';
+import 'package:step_seoul_app/services/employee_operations_sync.dart';
 import 'package:step_seoul_app/view/auth/login.dart';
 import 'package:step_seoul_app/view/employee/delivery_inbound.dart';
 import 'package:step_seoul_app/view/employee/customer_pickup.dart';
@@ -34,6 +37,7 @@ class _WorkHomeState extends State<WorkHome> {
   void initState() {
     super.initState();
     _activityStore.addListener(_onActivityChange);
+    unawaited(EmployeeOperationsSync.instance.start());
   }
 
   void _onActivityChange() {
