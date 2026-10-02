@@ -30,6 +30,13 @@ def read_purchase():
     return execute("SELECT * FROM `purchase`")
 
 
+def read_purchase_for_user(user_user_id: str):
+    return execute(
+        "SELECT * FROM `purchase` WHERE `user_user_id` = %s",
+        (user_user_id,),
+    )
+
+
 def update_purchase(
     shoe_shoe_id: str,
     user_user_id: str,

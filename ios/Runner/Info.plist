@@ -8,6 +8,10 @@
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
 	<string>Step Seoul App</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>가까운 STEP SEOUL 대리점까지의 거리를 안내하기 위해 현재 위치를 사용합니다.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>가까운 STEP SEOUL 대리점까지의 거리를 안내하기 위해 현재 위치를 사용합니다.</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>

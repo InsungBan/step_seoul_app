@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Form
 
-from services.shipment_service import create_shipment, read_shipment, update_shipment, delete_shipment
+from services.shipment_service import create_shipment, read_shipment, read_shipment_for_shoe, update_shipment, delete_shipment
 
 router = APIRouter(prefix="/shipment", tags=["shipment"])
 
@@ -20,6 +20,11 @@ def upload(
 @router.get("/select")
 def select():
     return read_shipment()
+
+
+@router.get("/select/shoe/{shoe_id}")
+def select_for_shoe(shoe_id: str):
+    return read_shipment_for_shoe(shoe_id)
 
 
 @router.put("/update/{shoe_shoe_id}/{employee_employee_id}/{shipment_id}/{store_store_id}")
