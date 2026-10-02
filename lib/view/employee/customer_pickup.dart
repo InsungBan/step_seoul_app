@@ -32,7 +32,7 @@ class _CustomerPickupPageState extends State<CustomerPickupPage> {
       phoneModal = false,
       smsModal = false,
       bulkModal = false;
-  final Set<String> selectedCustomers = {'이현우'};
+  final Set<String> selectedCustomers = <String>{};
   final _database = MockDatabase.instance;
   List<_Pickup> get waiting => _database.pickups
       .where((p) => p.status != PickupStatus.completed)
@@ -112,7 +112,9 @@ class _CustomerPickupPageState extends State<CustomerPickupPage> {
                     ),
                   ),
                   OutlinedButton.icon(
-                    onPressed: () => openMessage(waiting.first, bulk: true),
+                    onPressed: waiting.isEmpty
+                        ? null
+                        : () => openMessage(waiting.first, bulk: true),
                     icon: const Icon(Icons.send, size: 15),
                     label: const Text('선택 고객 안내 발송하기'),
                   ),
@@ -686,12 +688,7 @@ class _Pickup {
       arrival: _date(value.arrivedAt),
       days: value.waitingDays,
       status: pickupStatusLabel(value.status),
-      location:
-          'B구역-' +
-          (int.parse(value.id.split('-').last) % 8 + 1).toString().padLeft(
-            2,
-            '0',
-          ),
+      location: value.location.isEmpty ? '-' : value.location,
       phone: order.phone,
       received: value.completedAt == null
           ? null

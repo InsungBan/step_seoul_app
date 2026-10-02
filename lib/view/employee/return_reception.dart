@@ -665,9 +665,9 @@ class _ReturnRequest {
       reason = value.reason,
       submitted = _date(value.requestedAt),
       orderDate = _date(_order(database, value.orderId).orderedAt),
-      invoice = 'TX-' + value.id.hashCode.toString().padLeft(8, '0'),
+      invoice = '-',
       address = _order(database, value.orderId).address,
-      channel = 'STEP 온라인',
+      channel = '-',
       detailReason = value.detailReason,
       requestNote = value.note,
       status = value.status,
@@ -678,9 +678,18 @@ class _ReturnRequest {
           : null;
 
   static MockOrder _order(MockDatabase database, String code) =>
-      database.orders.firstWhere(
-        (order) => order.orderCode == code,
-        orElse: () => database.orders.first,
+      database.orders.where((order) => order.orderCode == code).firstOrNull ??
+      MockOrder(
+        id: '',
+        orderCode: code,
+        customer: '-',
+        phone: '',
+        productId: '',
+        orderedAt: DateTime.fromMillisecondsSinceEpoch(0),
+        expectedAt: DateTime.fromMillisecondsSinceEpoch(0),
+        status: DeliveryStatus.unknown,
+        quantity: 0,
+        address: '',
       );
   final String id,
       code,

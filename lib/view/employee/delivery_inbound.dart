@@ -330,19 +330,13 @@ class _DeliveryInboundPageState extends State<DeliveryInboundPage> {
                   style: TextStyle(fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 8),
-                const _Step('출고 완료', '오늘 08:20 · 물류센터', true),
-                const _Step('물류센터 이동 중', '오늘 09:10 · 간선 상차', true),
-                const _Step('지역 물류센터 도착', '오늘 11:35 · 서울 동부센터', true),
-                const _Step('매장으로 배송 중', '김기사님 · 배송 중', true),
-                const _Step('매장 도착 예정', '스탭픽업 강남점', false),
+                _Step('배송 상태', x.status, x.status != '상태 미등록'),
+                const _Step('상세 배송 위치', 'MySQL 배송 상세 정보가 없습니다.', false),
                 const SizedBox(height: 8),
                 Row(
                   children: [
                     const Expanded(
-                      child: Text(
-                        '서울특별시 서초구 강남대로 412',
-                        style: TextStyle(fontSize: 10),
-                      ),
+                      child: Text('주소 정보 없음', style: TextStyle(fontSize: 10)),
                     ),
                     TextButton(
                       onPressed: openMap,
@@ -351,7 +345,7 @@ class _DeliveryInboundPageState extends State<DeliveryInboundPage> {
                   ],
                 ),
                 const Text(
-                  '담당 기사  김기사님 · 010-1234-5678',
+                  '담당 기사 정보 없음',
                   style: TextStyle(fontSize: 10, color: muted),
                 ),
                 const SizedBox(height: 12),
@@ -394,7 +388,14 @@ class _DeliveryInboundPageState extends State<DeliveryInboundPage> {
 
   Future<void> openInbound() async {
     setState(() => isInboundModalOpen = true);
-    final item = selectedItem ?? items.first;
+    final item = selectedItem ?? (items.isEmpty ? null : items.first);
+    if (item == null) {
+      if (mounted) setState(() => isInboundModalOpen = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('입고 처리할 배송 데이터가 없습니다.')));
+      return;
+    }
     final completed = await showDialog<bool>(
       context: context,
       builder: (_) => _InboundDialog(item: item),
@@ -421,27 +422,20 @@ class _Delivery {
   });
   factory _Delivery.fromOrder(MockOrder order, MockDatabase database) {
     final product = database.productForOrder(order);
-    final index = int.tryParse(order.id.split('-').last) ?? 0;
-    final status = switch (order.status) {
-      DeliveryStatus.inTransit => index.isEven ? '매장으로 배송 중' : '물류센터 이동 중',
-      DeliveryStatus.arrivedToday => '지역 센터 도착',
-      DeliveryStatus.deliveredCompleted => '도착 완료',
-      DeliveryStatus.delayed => '배송 지연',
-    };
-    final today = DateTime.now();
-    final arrival =
-        order.expectedAt.year == today.year &&
-            order.expectedAt.month == today.month &&
-            order.expectedAt.day == today.day
-        ? '오늘 ' + (9 + index % 9).toString().padLeft(2, '0') + ':30'
-        : '지연';
+    final arrival = order.expectedAt.year <= 1970
+        ? '-'
+        : order.expectedAt.year.toString() +
+              '.' +
+              order.expectedAt.month.toString().padLeft(2, '0') +
+              '.' +
+              order.expectedAt.day.toString().padLeft(2, '0');
     return _Delivery(
       id: order.id,
       code: order.orderCode,
       name: product.name,
       option: product.option,
       qty: order.quantity,
-      status: status,
+      status: deliveryStatusLabel(order.status),
       arrival: arrival,
     );
   }
@@ -522,12 +516,12 @@ class _PhoneDialog extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _line('담당 기사', '김기사님'),
-        _line('연락처', '010-1234-5678'),
-        _line('배송 업체', '스탭택배'),
-        _line('현재 배송 상태', item?.status ?? '매장으로 배송 중'),
-        _line('주문 코드', item?.code ?? 'SPO-260928-1042'),
-        _line('상품 정보', item?.name ?? '나이키 에어포스 1 ’07'),
+        _line('담당 기사', '정보 없음'),
+        _line('연락처', '정보 없음'),
+        _line('배송 업체', '정보 없음'),
+        _line('현재 배송 상태', item?.status ?? '상태 미등록'),
+        _line('주문 코드', item?.code ?? '-'),
+        _line('상품 정보', item?.name ?? '-'),
       ],
     ),
     actions: [

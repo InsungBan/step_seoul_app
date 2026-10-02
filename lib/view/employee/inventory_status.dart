@@ -118,21 +118,26 @@ class _InventoryStatusPageState extends State<InventoryStatusPage> {
               _Summary(
                 '정상 재고',
                 _normal.toString() + '개',
-                '전체의 68%',
+                _products.isEmpty
+                    ? '등록 데이터 없음'
+                    : (_normal * 100 / _products.length).round().toString() +
+                          '%',
                 Icons.check_circle_outline,
                 const Color(0xFF25A77A),
               ),
               _Summary(
                 '재고 부족',
                 _low.toString() + '개',
-                '전체의 12%',
+                _products.isEmpty
+                    ? '등록 데이터 없음'
+                    : (_low * 100 / _products.length).round().toString() + '%',
                 Icons.warning_amber_rounded,
                 const Color(0xFFF39A39),
               ),
               _Summary(
                 '오늘 판매량',
                 _database.todaySalesQuantity.toString() + '개',
-                '전일 대비 +18%',
+                '구매 기록 기준',
                 Icons.trending_up,
                 Color(0xFF9566D8),
               ),
@@ -145,7 +150,9 @@ class _InventoryStatusPageState extends State<InventoryStatusPage> {
             children: [
               Expanded(
                 child: Text(
-                  '총 342개의 상품이 등록되어 있습니다. · 검색 결과 ' +
+                  '총 ' +
+                      _products.length.toString() +
+                      '개의 상품이 등록되어 있습니다. · 검색 결과 ' +
                       _visible.length.toString() +
                       '개',
                   style: const TextStyle(color: _muted, fontSize: 11),
@@ -345,6 +352,12 @@ class _InventoryStatusPageState extends State<InventoryStatusPage> {
   );
 
   Future<void> _inbound() async {
+    if (_products.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('입고 처리할 상품 데이터가 없습니다.')));
+      return;
+    }
     final result = await showDialog<_Receipt>(
       context: context,
       builder: (_) => _InboundDialog(products: _products),
@@ -376,7 +389,7 @@ class _InboundDialogState extends State<_InboundDialog> {
       _quantity = TextEditingController(text: '50'),
       _price = TextEditingController(),
       _memo = TextEditingController();
-  String _date = '2025.09.28';
+  String _date = _formatDate(DateTime.now());
   String _vendor = '본사';
   int _photos = 0;
   @override
@@ -787,3 +800,10 @@ Color _productColor(String category) => category == '나이키'
     : category == '아디다스'
     ? const Color(0xFFE9F0EA)
     : const Color(0xFFF3ECE7);
+
+String _formatDate(DateTime date) =>
+    date.year.toString() +
+    '.' +
+    date.month.toString().padLeft(2, '0') +
+    '.' +
+    date.day.toString().padLeft(2, '0');

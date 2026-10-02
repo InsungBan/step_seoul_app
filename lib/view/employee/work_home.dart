@@ -1,8 +1,5 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:step_seoul_app/services/session_service.dart';
-import 'package:step_seoul_app/services/employee_operations_sync.dart';
 import 'package:step_seoul_app/view/auth/login.dart';
 import 'package:step_seoul_app/view/employee/delivery_inbound.dart';
 import 'package:step_seoul_app/view/employee/customer_pickup.dart';
@@ -10,6 +7,7 @@ import 'package:step_seoul_app/view/employee/return_reception.dart';
 import 'package:step_seoul_app/view/employee/inventory_status.dart';
 import 'package:step_seoul_app/view/employee/work_history.dart';
 import 'package:step_seoul_app/services/work_activity_store.dart';
+import 'package:step_seoul_app/services/app_state.dart';
 
 const _navy = Color(0xFF14284B),
     _blue = Color(0xFF3268E8),
@@ -37,7 +35,6 @@ class _WorkHomeState extends State<WorkHome> {
   void initState() {
     super.initState();
     _activityStore.addListener(_onActivityChange);
-    unawaited(EmployeeOperationsSync.instance.start());
   }
 
   void _onActivityChange() {
@@ -528,9 +525,15 @@ class _WorkHomeState extends State<WorkHome> {
               ),
               subtitle: Text(
                 [
-                  '입고된 상품 18건을 확인해주세요.',
-                  '3일 이상 대기 주문이 5건 있어요.',
-                  '검수가 필요한 반품 상품 2건이 있어요.',
+                  '도착 예정 배송 ' +
+                      MockDatabase.instance.todayExpectedOrders.toString() +
+                      '건을 확인해주세요.',
+                  '3일 이상 대기 주문 ' +
+                      MockDatabase.instance.longWaitingPickups.toString() +
+                      '건을 확인해주세요.',
+                  '검수 대기 반품 ' +
+                      MockDatabase.instance.inspectWaitingReturns.toString() +
+                      '건을 확인해주세요.',
                 ][e.key],
                 style: const TextStyle(color: _muted, fontSize: 10),
               ),
@@ -574,7 +577,7 @@ class _WorkHomeState extends State<WorkHome> {
         SizedBox(
           height: 43,
           child: TextFormField(
-            initialValue: '060-260928-1042',
+            initialValue: '',
             decoration: InputDecoration(
               filled: true,
               fillColor: Colors.white,
@@ -655,17 +658,32 @@ class _WorkHomeState extends State<WorkHome> {
               DataColumn(label: Text('상태')),
               DataColumn(label: Text('상세/확인')),
             ],
-            rows: [
-              row('SPO-260928-1042', '박서준', '나이키 에어포스 1 · 화이트', '오늘 14:00'),
-              row('SPO-260928-1038', '김민지', '아디다스 삼바 OG · 블랙', '오늘 16:30'),
-              row('SPO-260927-0981', '이도윤', '뉴발란스 530 · 실버', '내일 11:00'),
-            ],
+            rows: MockDatabase.instance.pickups
+                .where((pickup) => pickup.status != PickupStatus.completed)
+                .map((pickup) {
+                  final db = MockDatabase.instance;
+                  final order = db.orderForPickup(pickup);
+                  final product = db.productForOrder(order);
+                  final expected = order.expectedAt.year <= 1970
+                      ? '-'
+                      : order.expectedAt.month.toString().padLeft(2, '0') +
+                            '/' +
+                            order.expectedAt.day.toString().padLeft(2, '0');
+                  return row(
+                    order.orderCode,
+                    order.customer,
+                    product.name + ' · ' + product.option,
+                    expected,
+                    pickupStatusLabel(pickup.status),
+                  );
+                })
+                .toList(),
           ),
         ),
       ],
     ),
   );
-  DataRow row(String a, String b, String c, String d) => DataRow(
+  DataRow row(String a, String b, String c, String d, String state) => DataRow(
     cells: [
       DataCell(
         Text(
@@ -676,8 +694,11 @@ class _WorkHomeState extends State<WorkHome> {
       DataCell(Text(b)),
       DataCell(Text(c, style: const TextStyle(fontSize: 10))),
       DataCell(Text(d)),
-      const DataCell(
-        Text('수령 대기', style: TextStyle(color: Color(0xFFDB8A25), fontSize: 10)),
+      DataCell(
+        Text(
+          state,
+          style: const TextStyle(color: Color(0xFFDB8A25), fontSize: 10),
+        ),
       ),
       DataCell(TextButton(onPressed: () => order(a), child: const Text('확인'))),
     ],
@@ -742,24 +763,35 @@ class _NotificationDialogState extends State<_NotificationDialog> {
               '최근 알림 내역',
               style: TextStyle(fontWeight: FontWeight.w800),
             ),
-            const ListTile(
-              dense: true,
-              leading: Icon(Icons.warning_amber, color: Color(0xFFE15D66)),
-              title: Text('배송 지연 안내', style: TextStyle(fontSize: 11)),
-              subtitle: Text(
-                'SPO-260927-0981 · 10분 전',
-                style: TextStyle(fontSize: 9),
+            ...WorkActivityStore.instance.items
+                .take(5)
+                .map(
+                  (item) => ListTile(
+                    dense: true,
+                    leading: const Icon(
+                      Icons.notifications_active_outlined,
+                      color: _blue,
+                    ),
+                    title: Text(
+                      item.message,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                    subtitle: Text(
+                      item.createdAt.toLocal().toString(),
+                      style: const TextStyle(fontSize: 9),
+                    ),
+                  ),
+                ),
+            if (WorkActivityStore.instance.items.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Text(
+                  '등록된 알림이 없습니다.',
+                  style: TextStyle(color: _muted, fontSize: 11),
+                ),
               ),
-            ),
-            const ListTile(
-              dense: true,
-              leading: Icon(Icons.local_shipping, color: _blue),
-              title: Text('도착 임박', style: TextStyle(fontSize: 11)),
-              subtitle: Text(
-                '강남점 배송 2건 · 25분 전',
-                style: TextStyle(fontSize: 9),
-              ),
-            ),
             const Divider(),
             const Text('알림 항목', style: TextStyle(fontWeight: FontWeight.w800)),
             ...['배송 지연', '도착 임박', '출고 완료', '기사 연락 요청'].map(_check),
@@ -1044,6 +1076,7 @@ class _OrderDialogState extends State<_OrderDialog> {
   late final c = TextEditingController(text: widget.initial ?? '');
   int tab = 0;
   bool result = false;
+  MockOrder? matchedOrder;
   final hints = [
     '주문번호를 입력하세요. (예: SPO-250926-1042)',
     '고객명을 입력하세요. (예: 홍길동)',
@@ -1053,7 +1086,29 @@ class _OrderDialogState extends State<_OrderDialog> {
   @override
   void initState() {
     super.initState();
-    result = widget.auto;
+    matchedOrder = _findOrder(widget.initial ?? '');
+    result = widget.auto && matchedOrder != null;
+  }
+
+  MockOrder? _findOrder(String input) {
+    final query = input.trim().toLowerCase();
+    if (query.isEmpty) return null;
+    final db = MockDatabase.instance;
+    return db.orders.where((order) {
+      final candidate = switch (tab) {
+        0 => order.orderCode,
+        1 => order.customer,
+        _ => order.phone,
+      };
+      return candidate.toLowerCase().contains(query);
+    }).firstOrNull;
+  }
+
+  void _searchOrder() {
+    setState(() {
+      matchedOrder = _findOrder(c.text);
+      result = true;
+    });
   }
 
   @override
@@ -1111,7 +1166,7 @@ class _OrderDialogState extends State<_OrderDialog> {
                 Expanded(
                   child: TextField(
                     controller: c,
-                    onSubmitted: (_) => setState(() => result = true),
+                    onSubmitted: (_) => _searchOrder(),
                     decoration: InputDecoration(
                       hintText: hints[tab],
                       hintStyle: const TextStyle(fontSize: 10),
@@ -1121,7 +1176,7 @@ class _OrderDialogState extends State<_OrderDialog> {
                 ),
                 const SizedBox(width: 8),
                 ElevatedButton(
-                  onPressed: () => setState(() => result = true),
+                  onPressed: _searchOrder,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _blue,
                     foregroundColor: Colors.white,
@@ -1131,75 +1186,16 @@ class _OrderDialogState extends State<_OrderDialog> {
               ],
             ),
             const SizedBox(height: 15),
-            if (result)
+            if (result && matchedOrder != null)
               Expanded(
                 child: SingleChildScrollView(
-                  child: Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: _canvas,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              width: 66,
-                              height: 66,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFE5EBF4),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: const Icon(
-                                Icons.directions_run,
-                                size: 42,
-                                color: _navy,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            const Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    '나이키 에어포스 1 ’07',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w900,
-                                    ),
-                                  ),
-                                  Text(
-                                    '화이트 / 260',
-                                    style: TextStyle(
-                                      color: _muted,
-                                      fontSize: 11,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const Chip(label: Text('주문 완료')),
-                          ],
-                        ),
-                        const SizedBox(height: 18),
-                        const Wrap(
-                          alignment: WrapAlignment.spaceBetween,
-                          runSpacing: 16,
-                          children: [
-                            _Info('고객명', '박서준'),
-                            _Info('주문 수량', '1개'),
-                            _Info('연락처', '010-****-1042'),
-                            _Info('주문 금액', '129,000원'),
-                            _Info('주문일', '2026.09.28'),
-                            _Info('결제 상태', '결제 완료'),
-                            _Info('주문 채널', 'STEP 온라인'),
-                            _Info('배송 상태', '출고 완료'),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
+                  child: _OrderResult(order: matchedOrder!),
                 ),
+              )
+            else if (result)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 28),
+                child: Text('조회 결과가 없습니다.'),
               ),
             const Spacer(),
             Row(
@@ -1253,4 +1249,53 @@ class _Info extends StatelessWidget {
       ],
     ),
   );
+}
+
+class _OrderResult extends StatelessWidget {
+  const _OrderResult({required this.order});
+  final MockOrder order;
+  String _date(DateTime value) => value.year <= 1970
+      ? '-'
+      : value.year.toString() +
+            '.' +
+            value.month.toString().padLeft(2, '0') +
+            '.' +
+            value.day.toString().padLeft(2, '0');
+  @override
+  Widget build(BuildContext context) {
+    final product = MockDatabase.instance.productForOrder(order);
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: _canvas,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            product.name,
+            style: const TextStyle(fontWeight: FontWeight.w900),
+          ),
+          Text(
+            product.option,
+            style: const TextStyle(color: _muted, fontSize: 11),
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 24,
+            runSpacing: 12,
+            children: [
+              _Info('주문번호', order.orderCode),
+              _Info('고객명', order.customer),
+              _Info('연락처', order.phone.isEmpty ? '-' : order.phone),
+              _Info('주문 수량', order.quantity.toString() + '개'),
+              _Info('주문일', _date(order.orderedAt)),
+              _Info('배송 상태', deliveryStatusLabel(order.status)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }

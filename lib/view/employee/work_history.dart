@@ -151,7 +151,7 @@ class _WorkHistoryPageState extends State<WorkHistoryPage> {
                             .length
                             .toString() +
                         '건',
-                    '전일 대비 +12건 ⬆️',
+                    '선택 날짜의 MySQL 업무 기록',
                     Icons.task_alt,
                     _blue,
                   ),

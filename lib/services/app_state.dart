@@ -2,11 +2,18 @@ import 'package:flutter/foundation.dart';
 
 enum ProductStatus { normal, warning, outOfStock, surplus }
 
-enum DeliveryStatus { inTransit, arrivedToday, deliveredCompleted, delayed }
+enum DeliveryStatus {
+  unknown,
+  inTransit,
+  arrivedToday,
+  deliveredCompleted,
+  delayed,
+}
 
-enum PickupStatus { waiting, completed, contactNeeded, delayed }
+enum PickupStatus { unknown, waiting, completed, contactNeeded, delayed }
 
 enum ReturnStatus {
+  unknown,
   requested,
   inspectWaiting,
   approved,
@@ -23,18 +30,21 @@ String productStatusLabel(ProductStatus value) => switch (value) {
   ProductStatus.surplus => '과잉 재고',
 };
 String deliveryStatusLabel(DeliveryStatus value) => switch (value) {
+  DeliveryStatus.unknown => '상태 미등록',
   DeliveryStatus.inTransit => '매장으로 배송 중',
   DeliveryStatus.arrivedToday => '지역 센터 도착',
   DeliveryStatus.deliveredCompleted => '도착 완료',
   DeliveryStatus.delayed => '배송 지연',
 };
 String pickupStatusLabel(PickupStatus value) => switch (value) {
+  PickupStatus.unknown => '상태 미등록',
   PickupStatus.waiting => '수령 대기',
   PickupStatus.completed => '수령 완료',
   PickupStatus.contactNeeded => '연락 필요',
   PickupStatus.delayed => '지연',
 };
 String returnStatusLabel(ReturnStatus value) => switch (value) {
+  ReturnStatus.unknown => '상태 미등록',
   ReturnStatus.requested => '반품 요청',
   ReturnStatus.inspectWaiting => '검수 대기',
   ReturnStatus.approved => '승인 완료',
@@ -108,15 +118,17 @@ class MockPickup {
     required this.contacted,
     required this.quantity,
     this.completedAt,
+    this.location = '',
   });
-  final String id, orderId;
+  final String id, orderId, location;
   final DateTime arrivedAt;
   PickupStatus status;
   bool contacted;
   final int quantity;
   DateTime? completedAt;
   int get waitingDays =>
-      status == PickupStatus.completed ||
+      arrivedAt.year <= 1970 ||
+          status == PickupStatus.completed ||
           status == PickupStatus.waiting && completedAt != null
       ? 0
       : DateTime.now().difference(arrivedAt).inDays;
@@ -185,7 +197,7 @@ class MockDatabase extends ChangeNotifier {
   late List<DateTime> inboundReceipts;
   late List<WorkActivity> logs;
   int _nextLogId = 1;
-  int _unread = 4;
+  int _unread = 0;
 
   DateTime get _today {
     final now = DateTime.now();
@@ -279,7 +291,7 @@ class MockDatabase extends ChangeNotifier {
   int get unreadCount => _unread;
 
   Map<String, dynamic> exportState() => {
-    'schemaVersion': 1,
+    'schemaVersion': 2,
     'unreadCount': _unread,
     'products': products
         .map(
@@ -325,6 +337,7 @@ class MockDatabase extends ChangeNotifier {
             'contacted': p.contacted,
             'quantity': p.quantity,
             'completedAt': p.completedAt?.toIso8601String(),
+            'location': p.location,
           },
         )
         .toList(),
@@ -369,7 +382,7 @@ class MockDatabase extends ChangeNotifier {
   };
 
   void restoreState(Map<String, dynamic> state) {
-    if (state['schemaVersion'] != 1) {
+    if (state['schemaVersion'] != 2) {
       throw const FormatException('Unsupported employee state version');
     }
     final productStatuses = {
@@ -440,6 +453,7 @@ class MockDatabase extends ChangeNotifier {
             completedAt: row['completedAt'] == null
                 ? null
                 : DateTime.parse(row['completedAt'] as String),
+            location: row['location'] as String? ?? '',
           ),
         )
         .toList();
@@ -489,200 +503,15 @@ class MockDatabase extends ChangeNotifier {
   }
 
   void reset({bool notify = true}) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final yesterday = today.subtract(const Duration(days: 1));
-    const templates = [
-      ('나이키 에어포스 1 ’07', '나이키', '화이트 / 260', 50, 20),
-      ('아디다스 삼바 OG', '아디다스', '블랙 / 240', 40, 15),
-      ('뉴발란스 530', '뉴발란스', '실버 / 270', 35, 12),
-      ('나이키 덩크 로우', '나이키', '그레이 / 255', 60, 15),
-      ('아디다스 가젤', '아디다스', '그린 / 245', 30, 10),
-      ('뉴발란스 2002R', '뉴발란스', '그레이 / 265', 40, 12),
-    ];
-    products = List.generate(342, (i) {
-      final t = templates[i % templates.length];
-      final status = i < 238
-          ? ProductStatus.normal
-          : i < 274
-          ? ProductStatus.warning
-          : i < 280
-          ? ProductStatus.outOfStock
-          : ProductStatus.surplus;
-      final stock = status == ProductStatus.normal
-          ? t.$4 - 5
-          : status == ProductStatus.warning
-          ? t.$5 - 2
-          : status == ProductStatus.outOfStock
-          ? 0
-          : t.$4 + 12;
-      return MockProduct(
-        id: 'product-$i',
-        name: t.$1,
-        category: t.$2,
-        option: i < 6
-            ? t.$3
-            : t.$3.split(' / ').first + ' / ' + (220 + i * 5 % 90).toString(),
-        code: i == 0
-            ? 'SPD-250928-1042'
-            : 'SPD-260928-' + (1000 + i).toString().padLeft(4, '0'),
-        stock: stock,
-        target: t.$4,
-        safetyStock: t.$5,
-        sold: 12 + i % 37,
-        todaySold: i < 11
-            ? i == 0
-                  ? 76
-                  : 1
-            : 0,
-        status: status,
-        lastInbound: yesterday,
-      );
-    });
-    inboundReceipts = List.generate(
-      18,
-      (i) => today.subtract(Duration(minutes: 20 * i)),
-    );
-    orders = [];
-    for (var i = 0; i < 60; i++) {
-      final isTodayWindow = i < 18;
-      final status = i < 12
-          ? DeliveryStatus.inTransit
-          : i < 16
-          ? DeliveryStatus.deliveredCompleted
-          : i < 18
-          ? DeliveryStatus.delayed
-          : DeliveryStatus.deliveredCompleted;
-      final expected = isTodayWindow
-          ? today
-          : yesterday.subtract(Duration(days: i % 7));
-      final product = products[i % products.length];
-      orders.add(
-        MockOrder(
-          id: 'order-$i',
-          orderCode: 'SPO-260928-' + (1042 - i).toString(),
-          customer: _customer(i),
-          phone: _phone(i),
-          productId: product.id,
-          orderedAt: today.subtract(Duration(days: 2 + i % 20)),
-          expectedAt: expected,
-          status: status,
-          quantity: 1 + i % 2,
-          address: '서울시 강남구 테헤란로 ' + (20 + i).toString(),
-        ),
-      );
-    }
-    pickups = List.generate(42, (i) {
-      final done = i < 18;
-      final long = i >= 18 && i < 26;
-      final status = done
-          ? PickupStatus.completed
-          : i < 24
-          ? PickupStatus.waiting
-          : i < 30
-          ? PickupStatus.contactNeeded
-          : PickupStatus.delayed;
-      final arrived = done
-          ? today.subtract(const Duration(hours: 2))
-          : today.subtract(Duration(days: long ? (i < 24 ? 3 : 4) : i % 3));
-      return MockPickup(
-        id: 'pickup-$i',
-        orderId: 'order-' + (18 + i).toString(),
-        arrivedAt: arrived,
-        status: status,
-        contacted: done || i == 24 || i == 25 || i >= 26,
-        quantity: 1 + (i % 2),
-        completedAt: done ? today.add(Duration(hours: 10, minutes: i)) : null,
-      );
-    });
-    returns = List.generate(28, (i) {
-      final status = i < 3
-          ? ReturnStatus.requested
-          : i < 15
-          ? ReturnStatus.inspectWaiting
-          : i < 24
-          ? ReturnStatus.approved
-          : ReturnStatus.recallRequested;
-      return MockReturn(
-        id: 'return-$i',
-        orderId: 'order-' + (18 + i % 42).toString(),
-        reason: i % 2 == 0 ? '사이즈가 생각보다 커서 반품 요청합니다.' : '상품 색상이 화면과 달라요.',
-        detailReason: '상품 상태를 확인한 후 요청 사유에 따라 처리해 주세요.',
-        note: '택배 회수 부탁드립니다.',
-        status: status,
-        requestedAt: today.subtract(Duration(days: i % 5)),
-        inspectionResult: '미개봉 (새상품)',
-        recallRequested: status == ReturnStatus.recallRequested,
-      );
-    });
-    logs = _seedLogs(today);
-    _nextLogId = logs.length + 1;
-    _unread = 4;
+    products = <MockProduct>[];
+    orders = <MockOrder>[];
+    pickups = <MockPickup>[];
+    returns = <MockReturn>[];
+    inboundReceipts = <DateTime>[];
+    logs = <WorkActivity>[];
+    _nextLogId = 1;
+    _unread = 0;
     if (notify) notifyListeners();
-  }
-
-  String _customer(int i) =>
-      const ['이현우', '김민지', '박서준', '최유진', '정수빈', '윤지호', '이준호', '이진서'][i % 8];
-  String _phone(int i) => const [
-    '010-1234-6789',
-    '010-2345-6789',
-    '010-3456-7890',
-    '010-4567-8901',
-    '010-5678-9012',
-    '010-6789-0123',
-  ][i % 6];
-  List<WorkActivity> _seedLogs(DateTime today) {
-    final result = <WorkActivity>[];
-    for (var i = 0; i < 28; i++) {
-      final type = i < 11
-          ? '판매'
-          : i < 20
-          ? '고객 수령'
-          : i < 25
-          ? '반품 승인'
-          : '재고 조정';
-      final product = products[i % products.length];
-      final customer = _customer(i);
-      final q = type == '판매' && i == 0 ? 76 : 1;
-      result.add(
-        WorkActivity(
-          id: i + 1,
-          type: type,
-          message: type == '고객 수령'
-              ? '[김직원] 직원님이 [' + customer + '] 고객의 상품 수령 처리를 완료하였습니다.'
-              : type == '반품 승인'
-              ? '[이민우] 직원님이 [SPO-250928-1042] 건의 반품 요청을 승인하였습니다.'
-              : '[김직원] 직원님이 [' +
-                    customer +
-                    '] 고객에게 [' +
-                    product.name +
-                    '] 상품을 판매하였습니다.',
-          customer: customer,
-          product: product.name,
-          option: product.option,
-          phone: _phone(i),
-          code: type == '고객 수령' || type == '판매'
-              ? product.code
-              : 'SPO-250928-' + (1042 - i).toString(),
-          quantity: q,
-          staff: i % 3 == 0 ? '박현우 (강남 대리점 · 사원)' : '김직원 (강남 대리점 · 사원)',
-          amount: type == '판매'
-              ? i < 5
-                    ? 129000
-                    : i < 9
-                    ? 179000
-                    : 242000
-              : 0,
-          note: type == '고객 수령'
-              ? '고객 본인 확인 후 상품을 전달했습니다.'
-              : type == '반품 승인'
-              ? '반품 상품 검수 후 승인 처리했습니다.'
-              : '정상 처리되었습니다.',
-          createdAt: today.add(Duration(hours: 9, minutes: i * 13)),
-        ),
-      );
-    }
-    return result;
   }
 
   void markAllRead() {
@@ -725,13 +554,39 @@ class MockDatabase extends ChangeNotifier {
     return item;
   }
 
+  static final _emptyOrder = MockOrder(
+    id: '',
+    orderCode: '-',
+    customer: '-',
+    phone: '',
+    productId: '',
+    orderedAt: DateTime.fromMillisecondsSinceEpoch(0),
+    expectedAt: DateTime.fromMillisecondsSinceEpoch(0),
+    status: DeliveryStatus.unknown,
+    quantity: 0,
+    address: '',
+  );
+  static final _emptyProduct = MockProduct(
+    id: '',
+    name: '-',
+    option: '-',
+    code: '-',
+    category: '-',
+    stock: 0,
+    target: 0,
+    sold: 0,
+    todaySold: 0,
+    safetyStock: 0,
+    status: ProductStatus.outOfStock,
+    lastInbound: null,
+  );
   MockOrder orderForPickup(MockPickup pickup) => orders.firstWhere(
     (o) => o.id == pickup.orderId,
-    orElse: () => orders.first,
+    orElse: () => _emptyOrder,
   );
   MockProduct productForOrder(MockOrder order) => products.firstWhere(
     (p) => p.id == order.productId,
-    orElse: () => products.first,
+    orElse: () => _emptyProduct,
   );
   void completePickup(String id, {String staff = '김직원'}) {
     final p = pickups.firstWhere((x) => x.id == id);
@@ -783,7 +638,7 @@ class MockDatabase extends ChangeNotifier {
     r.status = ReturnStatus.approved;
     final o = orders.firstWhere(
       (x) => x.orderCode == r.orderId,
-      orElse: () => orders.first,
+      orElse: () => _emptyOrder,
     );
     final product = productForOrder(o);
     record(
@@ -813,7 +668,7 @@ class MockDatabase extends ChangeNotifier {
     }
     final order = orders.firstWhere(
       (item) => item.orderCode == request.orderId,
-      orElse: () => orders.first,
+      orElse: () => _emptyOrder,
     );
     final product = productForOrder(order);
     record(
@@ -837,7 +692,7 @@ class MockDatabase extends ChangeNotifier {
     r.recallRequested = true;
     final o = orders.firstWhere(
       (x) => x.orderCode == r.orderId,
-      orElse: () => orders.first,
+      orElse: () => _emptyOrder,
     );
     final product = productForOrder(o);
     record(
@@ -860,6 +715,7 @@ class MockDatabase extends ChangeNotifier {
     if (order.status == DeliveryStatus.deliveredCompleted) return;
     order.status = DeliveryStatus.deliveredCompleted;
     final product = productForOrder(order);
+    if (product.id.isEmpty) return;
     product.stock += order.quantity;
     product.recalculateStatus();
     inboundReceipts.insert(0, DateTime.now());
