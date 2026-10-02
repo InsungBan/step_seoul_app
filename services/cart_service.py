@@ -26,6 +26,13 @@ def read_cart():
     return execute("SELECT * FROM `cart`")
 
 
+def read_cart_for_user(user_user_id: str):
+    return execute(
+        "SELECT * FROM `cart` WHERE `user_user_id` = %s",
+        (user_user_id,),
+    )
+
+
 def update_cart(
     user_user_id: str,
     shoe_shoe_id: str,
