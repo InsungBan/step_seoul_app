@@ -13,6 +13,7 @@ COLUMNS = {'shoe': ['shoe_id', 'brand_name', 'shoe_category', 'shoe_image_url', 
 COLUMNS.update({'manufacturing': ['shoe_shoe_id', 'shoe_manufacturer_manufacturer_id', 'manufacturing_id', 'manufacturing_date'], 'recall': ['store_store_id', 'user_user_id', 'recall_id', 'recall_date', 'recall_quantity', 'employee_employee_id'], 'refund': ['user_user_id', 'employee_employee_id', 'refund_id', 'refund_amount', 'refund_quantity', 'refund_reason'], 'authentication': ['user_user_id', 'employee_employee_id', 'authentication_id', 'authentication_date'], 'cart': ['user_user_id', 'shoe_shoe_id', 'cart_id', 'added_at']})
 
 OPTIONAL_COLUMNS = {
+    'approval': ['requested_amount'],
     'purchase': ['store_store_id'],
     'purchase_order': ['is_auto', 'created_at'],
     'return_record': ['purchase_purchase_id', 'return_quantity'],

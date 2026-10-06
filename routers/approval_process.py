@@ -1,8 +1,19 @@
 from fastapi import APIRouter, Form
+from pydantic import BaseModel, Field
+from services.approval_process_service import approve_by_employee
 
 from services.approval_process_service import create_approval_process, read_approval_process, update_approval_process, delete_approval_process
 
 router = APIRouter(prefix="/approval_process", tags=["approval_process"])
+
+
+class ApprovalActor(BaseModel):
+    employee_id: str = Field(min_length=1, max_length=20)
+
+
+@router.post('/approve/{approval_id}')
+def approve(approval_id: str, actor: ApprovalActor):
+    return approve_by_employee(approval_id, actor.employee_id)
 
 
 @router.post("/upload")

@@ -34,6 +34,9 @@ Map<String, dynamic> snapshot() => {
 };
 Map<String, dynamic> records() {
   final data = snapshot();
+  data['employee'] = [
+    {'employee_id': 'e1', 'employee_name': 'DB 직원'},
+  ];
   final now = DateTime.now().toIso8601String();
   data['shoe'] = [
     {
@@ -147,6 +150,77 @@ http.Response response(Map<String, dynamic> data) => http.Response(
   headers: {'content-type': 'application/json; charset=utf-8'},
 );
 void main() {
+  testWidgets('Final inbox approves from details and returns to its list', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1600, 1100);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final data = records();
+    final pending = data['hq_reports'][0]['final-approvals']['result'] as List;
+    pending.first.addAll({
+      'employee_employee_id': 'e1',
+      'approval_approval_id': 'a2',
+      'approval_process_id': 'ap2',
+      'team_leader_approval': '승인',
+      'director_approval': '대기',
+    });
+    data['approval_process'] = [
+      ...data['approval_process'] as List,
+      Map<String, dynamic>.from(pending.first),
+    ];
+    var updates = 0;
+    final repo = HqRepository(
+      client: MockClient((request) async {
+        if (request.method == 'POST') {
+          expect(request.url.path, '/approval_process/approve/a2');
+          expect(jsonDecode(request.body)['employee_id'], 'e1');
+          updates++;
+          pending.clear();
+          return http.Response(jsonEncode({'result': 'UPDATE OK'}), 200);
+        }
+        return response(data);
+      }),
+    );
+    addTearDown(repo.close);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: HqConsole(repository: repo, currentEmployeeId: 'e1'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('최종결재함 열기'));
+    await tester.tap(find.text('최종결재함 열기'));
+    await tester.pumpAndSettle();
+    expect(find.text('품의서 및 결재 기록'), findsOneWidget);
+    expect(tester.getSize(find.byType(DataTable)).width, greaterThan(1000));
+    expect(find.text('최종결재 권한 · 결재 라인'), findsNothing);
+    expect(find.text('품의 승인'), findsNothing);
+    await tester.tap(find.text('상세보기').first);
+    await tester.pumpAndSettle();
+    expect(find.text('관련 상품'), findsNothing);
+    expect(find.text('첨부 파일'), findsNothing);
+    expect(find.text('팀장 승인일'), findsNothing);
+    expect(find.text('신청 금액'), findsNothing);
+    final reasonPanel = find
+        .ancestor(of: find.text('신청 사유'), matching: find.byType(Container))
+        .first;
+    final approvalPanel = find
+        .ancestor(of: find.text('결재 정보'), matching: find.byType(Container))
+        .first;
+    expect(tester.getSize(reasonPanel), tester.getSize(approvalPanel));
+    await tester.ensureVisible(find.widgetWithText(FilledButton, '품의 승인'));
+    await tester.tap(find.widgetWithText(FilledButton, '품의 승인'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, '승인'));
+    await tester.pumpAndSettle();
+    expect(updates, 1);
+    expect(find.text('품의서 및 결재 기록'), findsOneWidget);
+    expect(find.text('품의 승인'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Reference layout, DB details, missing cells and tablet widths', (
     tester,
   ) async {
@@ -250,13 +324,15 @@ void main() {
     final repo = HqRepository(
       client: MockClient((request) async {
         if (request.method == 'POST') {
-          expect(request.url.path, '/approval/upload');
-          expect(request.bodyFields['approval_name'], '새 품의');
-          expect(request.bodyFields['approval_content'], '재고 확보');
-          expect(
-            request.bodyFields['approval_id']!.length,
-            lessThanOrEqualTo(20),
-          );
+          expect(request.url.path, '/approval/submit');
+          final payload = jsonDecode(request.body) as Map;
+          expect(payload['approval_name'], '새 품의');
+          expect(payload['approval_content'], startsWith('재고 확보\n'));
+          expect(payload['approval_content'], contains('DB 상품 (제품코드: s1)'));
+          expect(payload['approval_content'], contains('품의 유형: 재고 보충'));
+          expect(payload['approval_content'], contains('요청일:'));
+          expect(payload['employee_employee_id'], 'e1');
+          expect(payload['requested_amount'], '120000');
           saved = true;
           return http.Response('{"result":"CREATE OK"}', 200);
         }
@@ -271,7 +347,22 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, '품의서 작성'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).at(0), '새 품의');
-    await tester.enterText(find.byType(TextField).at(1), '재고 확보');
+    await tester.enterText(find.byType(TextField).at(1), '120000');
+    await tester.enterText(find.byType(TextField).at(2), '재고 확보');
+    await tester.tap(find.byType(DropdownButtonFormField<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('DB 직원 (e1)').last);
+    await tester.pumpAndSettle();
+    expect(find.text('품의 유형'), findsNothing);
+    expect(find.text('요청 부서'), findsNothing);
+    expect(find.text('작성자'), findsNothing);
+    expect(find.text('요청일'), findsNothing);
+    expect(find.text('4. 예상 발주 금액'), findsNothing);
+    expect(find.text('5. 결재 라인'), findsNothing);
+    expect(find.text('6. 첨부 파일'), findsNothing);
+    await tester.ensureVisible(find.byType(Checkbox).first);
+    await tester.tap(find.byType(Checkbox).first);
+    await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('품의 저장'));
     await tester.tap(find.text('품의 저장'));
     await tester.pumpAndSettle();

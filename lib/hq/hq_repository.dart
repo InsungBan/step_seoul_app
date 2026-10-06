@@ -74,24 +74,86 @@ class HqRepository {
     return result;
   }
 
-  Future<void> createProposal(String title, String content) async {
-    final id = 'PR${DateTime.now().microsecondsSinceEpoch}';
+  Future<void> createProposal(
+    String title,
+    String content, {
+    required String employeeId,
+    required String requestedAmount,
+  }) async {
     final response = await _client
         .post(
           Uri.parse(
-            '${baseUrl.replaceAll(RegExp(r'/+$'), '')}/approval/upload',
+            '${baseUrl.replaceAll(RegExp(r'/+$'), '')}/approval/submit',
           ),
-          body: {
-            'approval_id': id,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
             'approval_name': title,
             'approval_content': content,
-          },
+            'employee_employee_id': employeeId,
+            'requested_amount': requestedAmount,
+          }),
         )
         .timeout(const Duration(seconds: 15));
     if (response.statusCode != 200) throw Exception('Proposal save failed');
     final decoded = jsonDecode(utf8.decode(response.bodyBytes));
     if (decoded is! Map || decoded['result'] != 'CREATE OK') {
       throw const FormatException('Invalid save response');
+    }
+  }
+
+  Future<void> approveFinal(HqRow row) async {
+    final keys = [
+      'employee_employee_id',
+      'approval_approval_id',
+      'approval_process_id',
+    ];
+    if (keys.any((key) => row[key] == null || row[key].toString().isEmpty)) {
+      throw const FormatException('결재 처리 식별 정보가 없습니다.');
+    }
+    final path = keys
+        .map((key) => Uri.encodeComponent(row[key].toString()))
+        .join('/');
+    final response = await _client
+        .put(
+          Uri.parse(
+            '${baseUrl.replaceAll(RegExp(r'/+$'), '')}/approval_process/update/$path',
+          ),
+          body: {
+            'director_approval': '승인',
+            'approval_status': '승인완료',
+            'processed_at': DateTime.now()
+                .toUtc()
+                .add(const Duration(hours: 9))
+                .toIso8601String()
+                .replaceAll('Z', ''),
+          },
+        )
+        .timeout(const Duration(seconds: 15));
+    if (response.statusCode != 200) {
+      throw Exception('Final approval failed (HTTP ${response.statusCode})');
+    }
+    final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+    if (decoded is! Map || decoded['result'] != 'UPDATE OK') {
+      throw const FormatException('Invalid approval response');
+    }
+  }
+
+  Future<void> approveProposal(String approvalId, String employeeId) async {
+    final response = await _client
+        .post(
+          Uri.parse(
+            '${baseUrl.replaceAll(RegExp(r'/+$'), '')}/approval_process/approve/${Uri.encodeComponent(approvalId)}',
+          ),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'employee_id': employeeId}),
+        )
+        .timeout(const Duration(seconds: 15));
+    if (response.statusCode != 200) {
+      throw Exception('Approval failed (${response.statusCode})');
+    }
+    final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+    if (decoded is! Map || decoded['result'] != 'UPDATE OK') {
+      throw const FormatException('Invalid approval response');
     }
   }
 

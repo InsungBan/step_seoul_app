@@ -6,8 +6,11 @@ import 'hq_view_data.dart';
 import 'hq_charts.dart';
 
 class HqConsole extends StatefulWidget {
-  const HqConsole({super.key, this.repository});
+  const HqConsole({super.key, this.repository, this.currentEmployeeId});
   final HqRepository? repository;
+
+  /// The logged-in employee ID; the API resolves their role from the DB.
+  final String? currentEmployeeId;
   @override
   State<HqConsole> createState() => _HqConsoleState();
 }
@@ -90,6 +93,7 @@ class _HqConsoleState extends State<HqConsole> {
     search.dispose();
     proposalTitle.dispose();
     proposalContent.dispose();
+    proposalAmount.dispose();
     if (widget.repository == null) repository.close();
     super.dispose();
   }
@@ -127,6 +131,7 @@ class _HqConsoleState extends State<HqConsole> {
     status = '전체 상태';
     search.clear();
     selected.clear();
+    proposalProducts.clear();
     detailRow = null;
     writing = false;
     finalInbox = false;
@@ -299,18 +304,28 @@ class _HqConsoleState extends State<HqConsole> {
           ),
         ),
       );
-  Widget pair(Widget left, Widget right) => LayoutBuilder(
-    builder: (context, b) => b.maxWidth >= 800
-        ? Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+  Widget pair(Widget left, Widget right, {bool equalHeight = false}) =>
+      LayoutBuilder(
+        builder: (context, b) {
+          if (b.maxWidth < 800) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [left, right],
+            );
+          }
+          final row = Row(
+            crossAxisAlignment: equalHeight
+                ? CrossAxisAlignment.stretch
+                : CrossAxisAlignment.start,
             children: [
               Expanded(child: left),
               const SizedBox(width: 16),
               Expanded(child: right),
             ],
-          )
-        : Column(children: [left, right]),
-  );
+          );
+          return equalHeight ? IntrinsicHeight(child: row) : row;
+        },
+      );
   Widget sidebar(bool drawer) => Material(
     color: HqPalette.navy,
     child: SafeArea(
@@ -424,7 +439,7 @@ class _HqConsoleState extends State<HqConsole> {
   );
   String get title => writing
       ? '품의서 작성'
-      : finalInbox
+      : finalInbox && detailRow == null
       ? '최종결재함'
       : detailRow != null
       ? switch (detailType) {
@@ -593,7 +608,6 @@ class _HqConsoleState extends State<HqConsole> {
                   '배송완료',
                   statusCount('shipment', 'delivery_status', '배송완료'),
                 ),
-                (Icons.warning_amber, '지연 배송', hqMissing),
               ]
             : tab == 2
             ? [
@@ -604,7 +618,6 @@ class _HqConsoleState extends State<HqConsole> {
                   statusCount('receive', 'receive_status', '수령대기'),
                 ),
                 (Icons.check, '수령 완료', reportCount('completed-receipts', '건')),
-                (Icons.warning_amber, '미수령 경과', hqMissing),
               ]
             : tab >= 3
             ? [
@@ -615,7 +628,6 @@ class _HqConsoleState extends State<HqConsole> {
                 ),
                 (Icons.inventory, '회수 기록', db.count('recall')),
                 (Icons.currency_exchange, '환불 기록', db.count('refund')),
-                (Icons.fact_check_outlined, '검수 완료', hqMissing),
               ]
             : [
                 (Icons.shopping_cart_outlined, '전체 주문', db.count('purchase')),
@@ -712,15 +724,6 @@ class _HqConsoleState extends State<HqConsole> {
           '등록 상품 수',
           amount(db.rows('shoe').isEmpty ? null : db.rows('shoe').length),
         ),
-        (
-          Icons.factory_outlined,
-          '제조사 수',
-          amount(
-            db.rows('shoe_manufacturer').isEmpty
-                ? null
-                : db.rows('shoe_manufacturer').length,
-          ),
-        ),
       ],
       _ => [
         (
@@ -739,7 +742,14 @@ class _HqConsoleState extends State<HqConsole> {
     };
     return LayoutBuilder(
       builder: (c, b) {
-        final n = b.maxWidth > 1150
+        final singleRow =
+            section == 0 ||
+            section == 3 ||
+            section == 6 ||
+            (section == 1 && tab == 1);
+        final n = singleRow
+            ? 4
+            : b.maxWidth > 1150
             ? items.length
             : b.maxWidth > 650
             ? 3
@@ -750,6 +760,7 @@ class _HqConsoleState extends State<HqConsole> {
           spacing: 12,
           children: List.generate(items.length, (i) {
             final item = items[i];
+            final narrow = singleRow && (b.maxWidth - 36) / 4 < 240;
             final color = [
               HqPalette.purple,
               Colors.blue,
@@ -762,7 +773,7 @@ class _HqConsoleState extends State<HqConsole> {
               child: Container(
                 constraints: const BoxConstraints(minHeight: 136),
                 margin: const EdgeInsets.only(bottom: 16),
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(narrow ? 8 : 16),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   border: Border.all(color: HqPalette.line),
@@ -771,15 +782,16 @@ class _HqConsoleState extends State<HqConsole> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(9),
-                      decoration: BoxDecoration(
-                        color: color.withValues(alpha: .08),
-                        borderRadius: BorderRadius.circular(10),
+                    if (!narrow)
+                      Container(
+                        padding: const EdgeInsets.all(9),
+                        decoration: BoxDecoration(
+                          color: color.withValues(alpha: .08),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(item.$1, color: color, size: 26),
                       ),
-                      child: Icon(item.$1, color: color, size: 26),
-                    ),
-                    const SizedBox(width: 12),
+                    if (!narrow) const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -792,14 +804,18 @@ class _HqConsoleState extends State<HqConsole> {
                             ),
                           ),
                           const SizedBox(height: 15),
-                          Text(
-                            item.$3,
-                            style: TextStyle(
-                              fontSize: item.$3 == hqMissing ? 12 : 23,
-                              fontWeight: FontWeight.w800,
-                              color: item.$3 == hqMissing
-                                  ? HqPalette.muted
-                                  : HqPalette.ink,
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              item.$3,
+                              style: TextStyle(
+                                fontSize: item.$3 == hqMissing ? 12 : 23,
+                                fontWeight: FontWeight.w800,
+                                color: item.$3 == hqMissing
+                                    ? HqPalette.muted
+                                    : HqPalette.ink,
+                              ),
                             ),
                           ),
                           const SizedBox(height: 7),
@@ -911,7 +927,10 @@ class _HqConsoleState extends State<HqConsole> {
       ),
       if (section == 3)
         FilledButton.icon(
-          onPressed: () => setState(() => writing = true),
+          onPressed: () => setState(() {
+            writing = true;
+            page = 0;
+          }),
           icon: const Icon(Icons.add),
           label: const Text('품의서 작성'),
         ),
@@ -1171,6 +1190,9 @@ class _HqConsoleState extends State<HqConsole> {
       return text(db.latestApproval(row['approval_id'])?['approval_date']);
     }
     if (field == '_requested_amount') {
+      if (row['requested_amount'] != null) {
+        return money(db.number(row['requested_amount']));
+      }
       final orders = db
           .rows('purchase_order')
           .where((r) => r['approval_approval_id'] == row['approval_id'])
@@ -1231,6 +1253,11 @@ class _HqConsoleState extends State<HqConsole> {
       activeType,
       sourceRows(),
       columns(activeType),
+      showSelection: ![1, 2, 3, 4, 6].contains(section),
+      fillWidth:
+          section == 4 ||
+          (section == 6 &&
+              ['employee', 'shoe_manufacturer'].contains(activeType)),
       onOpen: (r) => setState(() {
         detailRow = r;
         detailType = ['pending', 'approved', 'rejected'].contains(activeType)
@@ -1245,16 +1272,23 @@ class _HqConsoleState extends State<HqConsole> {
     Map<String, String> cols, {
     void Function(HqRow)? onOpen,
     bool compact = false,
+    bool fillWidth = false,
+    bool showSelection = true,
+    Set<String>? selectedProducts,
+    void Function(HqRow, bool)? onProductSelected,
   }) {
     final filtered = source.where((r) {
-      if (query.isNotEmpty &&
+      if (!writing &&
+          query.isNotEmpty &&
           !cols.keys.any(
             (f) => display(type, r, f).toLowerCase().contains(query),
           )) {
         return false;
       }
-      if (status != '전체 상태' && rowStatus(type, r) != status) return false;
-      if (period != null && !compact) {
+      if (!writing && status != '전체 상태' && rowStatus(type, r) != status) {
+        return false;
+      }
+      if (!writing && period != null && !compact) {
         final dateField = switch (type) {
           'purchase' => 'payment_date',
           'shipment' => null,
@@ -1287,86 +1321,107 @@ class _HqConsoleState extends State<HqConsole> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: DataTable(
-            headingRowColor: WidgetStateProperty.all(const Color(0xFFF2F6FF)),
-            headingRowHeight: 40,
-            dataRowMinHeight: 52,
-            dataRowMaxHeight: 64,
-            columnSpacing: 24,
-            horizontalMargin: 12,
-            columns: [
-              if (!compact) const DataColumn(label: Text('선택')),
-              ...cols.values.map(
-                (v) => DataColumn(
-                  label: Text(
-                    v,
-                    style: const TextStyle(
-                      color: HqPalette.muted,
-                      fontSize: 11,
-                    ),
-                  ),
-                ),
+        LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minWidth: fillWidth
+                    ? constraints.maxWidth.clamp(
+                        0.0,
+                        MediaQuery.sizeOf(context).width,
+                      )
+                    : 0,
               ),
-              if (onOpen != null) const DataColumn(label: Text('작업')),
-            ],
-            rows: List.generate(visible.length, (i) {
-              final row = visible[i];
-              return DataRow(
-                cells: [
-                  if (!compact)
-                    DataCell(
-                      Checkbox(
-                        value: selected.contains(safePage * 8 + i),
-                        onChanged: (v) => setState(() {
-                          v == true
-                              ? selected.add(safePage * 8 + i)
-                              : selected.remove(safePage * 8 + i);
-                        }),
-                      ),
-                    ),
-                  ...cols.keys.map((f) {
-                    final v = display(type, row, f);
-                    return DataCell(
-                      SizedBox(
-                        width: v == hqMissing
-                            ? 115
-                            : f.contains('name')
-                            ? 170
-                            : null,
-                        child:
-                            f.contains('status') ||
-                                f == '_stock' ||
-                                f == '_approval'
-                            ? pill(v)
-                            : Text(
-                                v,
-                                style: TextStyle(
-                                  fontSize: v == hqMissing ? 10 : 12,
-                                  color: v == hqMissing
-                                      ? HqPalette.muted
-                                      : HqPalette.ink,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                      ),
-                    );
-                  }),
-                  if (onOpen != null)
-                    DataCell(
-                      OutlinedButton(
-                        onPressed: () => onOpen(row),
-                        child: const Text(
-                          '상세보기',
-                          style: TextStyle(fontSize: 11),
+              child: DataTable(
+                headingRowColor: WidgetStateProperty.all(
+                  const Color(0xFFF2F6FF),
+                ),
+                headingRowHeight: 40,
+                dataRowMinHeight: 52,
+                dataRowMaxHeight: 64,
+                columnSpacing: 24,
+                horizontalMargin: 12,
+                columns: [
+                  if (!compact && showSelection)
+                    const DataColumn(label: Text('선택')),
+                  ...cols.values.map(
+                    (v) => DataColumn(
+                      label: Text(
+                        v,
+                        style: const TextStyle(
+                          color: HqPalette.muted,
+                          fontSize: 11,
                         ),
                       ),
                     ),
+                  ),
+                  if (onOpen != null) const DataColumn(label: Text('작업')),
                 ],
-              );
-            }),
+                rows: List.generate(visible.length, (i) {
+                  final row = visible[i];
+                  return DataRow(
+                    cells: [
+                      if (!compact && showSelection)
+                        DataCell(
+                          Checkbox(
+                            value: selectedProducts != null
+                                ? selectedProducts.contains(
+                                    row['shoe_id'].toString(),
+                                  )
+                                : selected.contains(safePage * 8 + i),
+                            onChanged: onProductSelected != null
+                                ? (v) => onProductSelected(row, v == true)
+                                : (v) => setState(() {
+                                    v == true
+                                        ? selected.add(safePage * 8 + i)
+                                        : selected.remove(safePage * 8 + i);
+                                  }),
+                          ),
+                        ),
+                      ...cols.keys.map((f) {
+                        final v = display(type, row, f);
+                        return DataCell(
+                          SizedBox(
+                            width: v == hqMissing
+                                ? 115
+                                : f.contains('name')
+                                ? 170
+                                : null,
+                            child:
+                                f.contains('status') ||
+                                    f == '_stock' ||
+                                    f == '_approval'
+                                ? pill(v)
+                                : Text(
+                                    v,
+                                    style: TextStyle(
+                                      fontSize: v == hqMissing ? 10 : 12,
+                                      color: v == hqMissing
+                                          ? HqPalette.muted
+                                          : HqPalette.ink,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                          ),
+                        );
+                      }),
+                      if (onOpen != null)
+                        DataCell(
+                          OutlinedButton(
+                            onPressed: () => onOpen(row),
+                            child: const Text(
+                              '상세보기',
+                              style: TextStyle(fontSize: 11),
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                }),
+              ),
+            ),
           ),
         ),
         if (!compact)
@@ -1496,9 +1551,9 @@ class _HqConsoleState extends State<HqConsole> {
               'standard_stock': '기준',
               '_ratio': '재고비율',
               '_manufacturer': '제조사',
-              '_approval_status': '품의 · 발주 상태',
             },
             compact: true,
+            fillWidth: true,
             onOpen: (r) => setState(() {
               section = 2;
               detailRow = r;
@@ -1532,10 +1587,12 @@ class _HqConsoleState extends State<HqConsole> {
         '카테고리별 재고 현황',
         reportChart('inventory-by-category', 'category', 'quantity'),
       ),
+      equalHeight: true,
     );
   }
 
   Widget footerPanels() => switch (section) {
+    2 => const SizedBox.shrink(),
     1 => panel(
       tab >= 3
           ? '반품 사유 분포'
@@ -1546,11 +1603,13 @@ class _HqConsoleState extends State<HqConsole> {
     ),
     3 => panel(
       '최근 품의서',
-      dataTable('approval', db.rows('approval').reversed.toList(), {
-        'approval_id': '품의번호',
-        'approval_name': '제목',
-        '_approval': '결재 상태',
-      }, compact: true),
+      dataTable(
+        'approval',
+        db.rows('approval').reversed.toList(),
+        {'approval_id': '품의번호', 'approval_name': '제목', '_approval': '결재 상태'},
+        compact: true,
+        fillWidth: true,
+      ),
     ),
     4 => panel('제조사별 발주 요약', manufacturerSummary()),
     6 => panel(
@@ -1654,6 +1713,7 @@ class _HqConsoleState extends State<HqConsole> {
               currency: true,
             ),
           ),
+          equalHeight: true,
         ),
         pair(
           panel(
@@ -1704,6 +1764,7 @@ class _HqConsoleState extends State<HqConsole> {
                     }),
                   ),
           ),
+          equalHeight: true,
         ),
       ],
     );
@@ -1713,9 +1774,9 @@ class _HqConsoleState extends State<HqConsole> {
     alignment: Alignment.centerRight,
     child: OutlinedButton.icon(
       onPressed: () => setState(() {
+        if (detailRow == null) finalInbox = false;
         detailRow = null;
         writing = false;
-        finalInbox = false;
       }),
       icon: const Icon(Icons.arrow_back),
       label: const Text('목록으로 돌아가기'),
@@ -1773,7 +1834,8 @@ class _HqConsoleState extends State<HqConsole> {
               : '상세 정보',
           info({
             for (final field in columns(type).entries)
-              field.value: display(type, r, field.key),
+              if (type != 'approval' || field.key != '_requested_amount')
+                field.value: display(type, r, field.key),
           }),
         ),
         if (type == 'purchase') ...[
@@ -1844,12 +1906,9 @@ class _HqConsoleState extends State<HqConsole> {
                 '기준재고': text(r['standard_stock']),
                 '현재재고': text(r['stock_quantity']),
                 '재고비율': display(type, r, '_ratio'),
-                '재주문 임계치': hqMissing,
               }),
             ),
           ),
-          panel('최근 30일 재고 추이', empty()),
-          panel('자동 발주 이력', reportList('auto-order-history')),
         ],
         if (type == 'purchase_order') ...[
           panel(
@@ -1866,7 +1925,6 @@ class _HqConsoleState extends State<HqConsole> {
               compact: true,
             ),
           ),
-          panel('첨부 문서', empty()),
         ],
         if (type == 'approval') ...[
           pair(
@@ -1881,49 +1939,106 @@ class _HqConsoleState extends State<HqConsole> {
                 '이사 승인': text(
                   db.latestApproval(r['approval_id'])?['director_approval'],
                 ),
-                '처리일': text(
-                  db.latestApproval(r['approval_id'])?['processed_at'],
-                ),
               }),
             ),
+            equalHeight: true,
           ),
-          pair(panel('관련 상품', empty()), panel('첨부 파일', empty())),
+          ...[
+            const SizedBox(height: 12),
+            finalApprovalButton(r),
+            if (widget.currentEmployeeId == null)
+              const Text('로그인 사용자 정보 연결 후 직급에 맞게 승인할 수 있습니다.'),
+            const SizedBox(height: 12),
+          ],
         ],
       ],
     );
   }
 
+  bool approving = false;
+
+  Future<void> approveFinal(HqRow row) async {
+    if (approving || widget.currentEmployeeId == null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('품의 승인'),
+        content: Text('${text(row['approval_name'])} 건을 현재 사용자 직급으로 승인하시겠습니까?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('취소'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('승인'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted || approving) return;
+    setState(() => approving = true);
+    try {
+      await repository.approveProposal(
+        row['approval_id'].toString(),
+        widget.currentEmployeeId!,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('현재 사용자 직급으로 승인되었습니다.')));
+      await reload();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('승인에 실패했습니다. 사용자 직급과 결재 순서, 서버 연결을 확인해 주세요.'),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => approving = false);
+    }
+  }
+
+  Widget finalApprovalButton(HqRow row) => FilledButton.icon(
+    onPressed:
+        approving ||
+            widget.currentEmployeeId == null ||
+            db.latestApproval(row['approval_id']) == null ||
+            !['결재대기', '결재중', '진행중'].contains(
+              db.latestApproval(row['approval_id'])?['approval_status'],
+            )
+        ? null
+        : () => approveFinal(row),
+    icon: const Icon(Icons.check_circle_outline),
+    label: Text(approving ? '처리 중...' : '품의 승인'),
+  );
+
   Widget inbox() => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       backButton(),
-      pair(
-        panel(
-          '품의서 및 결재 기록',
-          dataTable(
-            'approval',
-            reportRows('final-approvals'),
-            {
-              'approval_id': '품의번호',
-              'approval_name': '제목',
-              '_approval': '결재 상태',
-            },
-            onOpen: (r) => setState(() {
-              detailRow = r;
-              detailType = 'approval';
-              finalInbox = false;
-            }),
-          ),
-        ),
-        panel(
-          '최종결재 권한 · 결재 라인',
-          empty(),
-          subtitle: '로그인 사용자와 담당 결재자 정보가 필요합니다.',
+      panel(
+        '품의서 및 결재 기록',
+        dataTable(
+          'approval',
+          reportRows('final-approvals'),
+          {'approval_id': '품의번호', 'approval_name': '제목', '_approval': '결재 상태'},
+          fillWidth: true,
+          showSelection: false,
+          onOpen: (r) => setState(() {
+            detailRow = r;
+            detailType = 'approval';
+          }),
         ),
       ),
     ],
   );
   final proposalTitle = TextEditingController();
   final proposalContent = TextEditingController();
+  final proposalAmount = TextEditingController();
+  String? proposalEmployeeId;
+  final proposalProducts = <String, HqRow>{};
   bool saving = false;
   Future<void> saveProposal() async {
     if (proposalTitle.text.trim().isEmpty ||
@@ -1933,15 +2048,44 @@ class _HqConsoleState extends State<HqConsole> {
       ).showSnackBar(const SnackBar(content: Text('품의 제목과 사유를 입력해 주세요.')));
       return;
     }
+    if (proposalProducts.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('품의를 작성할 상품을 선택해 주세요.')));
+      return;
+    }
+    final requestedAmount = num.tryParse(proposalAmount.text.trim());
+    if (proposalEmployeeId == null ||
+        requestedAmount == null ||
+        !requestedAmount.isFinite ||
+        requestedAmount < 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('결재 담당 직원과 올바른 신청금액을 입력해 주세요.')),
+      );
+      return;
+    }
     setState(() => saving = true);
     try {
       await repository.createProposal(
         proposalTitle.text.trim(),
-        proposalContent.text.trim(),
+        [
+          proposalContent.text.trim(),
+          '',
+          '품의 유형: 재고 보충',
+          '요청일: ${DateTime.now().toUtc().add(const Duration(hours: 9)).toIso8601String().replaceAll('Z', '')}',
+          '품의 대상 상품:',
+          for (final product in proposalProducts.values)
+            '- ${text(product['brand_name'])} (제품코드: ${text(product['shoe_id'])})',
+        ].join('\n'),
+        employeeId: proposalEmployeeId!,
+        requestedAmount: proposalAmount.text.trim(),
       );
       if (!mounted) return;
       proposalTitle.clear();
       proposalContent.clear();
+      proposalProducts.clear();
+      proposalAmount.clear();
+      proposalEmployeeId = null;
       setState(() {
         writing = false;
         saving = false;
@@ -1973,12 +2117,36 @@ class _HqConsoleState extends State<HqConsole> {
                   decoration: const InputDecoration(labelText: '품의 제목 *'),
                 ),
                 const SizedBox(height: 16),
-                info({
-                  '품의 유형': hqMissing,
-                  '요청 부서': hqMissing,
-                  '작성자': hqMissing,
-                  '요청일': hqMissing,
-                }),
+                DropdownButtonFormField<String>(
+                  initialValue: proposalEmployeeId,
+                  isExpanded: true,
+                  decoration: const InputDecoration(labelText: '결재 담당 직원 *'),
+                  items: db
+                      .rows('employee')
+                      .map(
+                        (employee) => DropdownMenuItem(
+                          value: employee['employee_id'].toString(),
+                          child: Text(
+                            '${text(employee['employee_name'])} (${text(employee['employee_id'])})',
+                          ),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: saving
+                      ? null
+                      : (value) => setState(() => proposalEmployeeId = value),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: proposalAmount,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: '신청금액 *',
+                    suffixText: '원',
+                  ),
+                ),
               ],
             ),
           ),
@@ -1992,22 +2160,32 @@ class _HqConsoleState extends State<HqConsole> {
           ),
           panel(
             '3. 부족 상품 목록',
-            dataTable('shoe', db.lowStock, {
-              'brand_name': '상품명',
-              'shoe_id': '제품코드',
-              if (section == 6) 'shoe_price': '가격',
-              '_manufacturer': '제조사',
-              'stock_quantity': '현재재고',
-              'standard_stock': '기준재고',
-              '_ratio': '재고비율',
-              '_requested_quantity': '요청수량',
-              '_estimate': '예상금액',
-            }, compact: true),
+            dataTable(
+              'shoe',
+              db.lowStock,
+              {
+                'brand_name': '상품명',
+                'shoe_id': '제품코드',
+                if (section == 6) 'shoe_price': '가격',
+                '_manufacturer': '제조사',
+                'stock_quantity': '현재재고',
+                'standard_stock': '기준재고',
+                '_ratio': '재고비율',
+              },
+              fillWidth: true,
+              selectedProducts: proposalProducts.keys.toSet(),
+              onProductSelected: (row, checked) => setState(() {
+                final id = row['shoe_id'].toString();
+                if (checked) {
+                  proposalProducts[id] = Map<String, dynamic>.from(row);
+                } else {
+                  proposalProducts.remove(id);
+                }
+              }),
+            ),
           ),
         ],
       ),
-      pair(panel('4. 예상 발주 금액', empty()), panel('5. 결재 라인', empty())),
-      panel('6. 첨부 파일', empty()),
       Wrap(
         spacing: 12,
         runSpacing: 8,
@@ -2019,10 +2197,6 @@ class _HqConsoleState extends State<HqConsole> {
           FilledButton(
             onPressed: saving ? null : saveProposal,
             child: Text(saving ? '저장 중...' : '품의 저장'),
-          ),
-          const Text(
-            '제목·사유만 DB에 저장됩니다. 결재 요청 데이터가 없습니다.',
-            style: TextStyle(fontSize: 12, color: HqPalette.muted),
           ),
         ],
       ),
