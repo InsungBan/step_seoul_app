@@ -4,6 +4,7 @@ import 'hq_palette.dart';
 import 'hq_repository.dart';
 import 'hq_view_data.dart';
 import 'hq_charts.dart';
+import 'hq_create_record_dialog.dart';
 
 class HqConsole extends StatefulWidget {
   const HqConsole({super.key, this.repository, this.currentEmployeeId});
@@ -24,6 +25,14 @@ class _HqConsoleState extends State<HqConsole> {
   String query = '', status = '전체 상태';
   final search = TextEditingController();
   final selected = <int>{};
+  final selectedShipments = <String, HqRow>{};
+  bool dispatching = false;
+  String shipmentKey(HqRow row) => [
+    'shoe_shoe_id',
+    'employee_employee_id',
+    'shipment_id',
+    'store_store_id',
+  ].map((key) => Uri.encodeComponent(row[key].toString())).join('/');
   HqRow? detailRow;
   String? detailType;
   bool writing = false, finalInbox = false;
@@ -62,7 +71,6 @@ class _HqConsoleState extends State<HqConsole> {
       ('수령 현황', 'receive'),
       ('반품 현황', 'return_record'),
       ('회수 현황', 'recall'),
-      ('환불 현황', 'refund'),
     ],
     2 => [('상품별 재고', 'shoe')],
     3 => [
@@ -111,6 +119,7 @@ class _HqConsoleState extends State<HqConsole> {
       if (!mounted) return;
       setState(() {
         db = HqViewData(data);
+        selectedShipments.clear();
         loading = false;
         detailRow = null;
       });
@@ -131,6 +140,7 @@ class _HqConsoleState extends State<HqConsole> {
     status = '전체 상태';
     search.clear();
     selected.clear();
+    selectedShipments.clear();
     proposalProducts.clear();
     detailRow = null;
     writing = false;
@@ -853,7 +863,7 @@ class _HqConsoleState extends State<HqConsole> {
   String statusCount(String table, String field, String value) =>
       db.rows(table).isEmpty || db.rows(table).any((row) => row[field] == null)
       ? hqMissing
-      : '${db.rows(table).where((r) => r[field] == value).length}건';
+      : '${db.rows(table).where((r) => r[field].toString().replaceAll(' ', '') == value.replaceAll(' ', '')).length}건';
   num? monthSoldQuantity() {
     final now = DateUtils.dateOnly(DateTime.now());
     final products = db.bestProducts(
@@ -896,6 +906,7 @@ class _HqConsoleState extends State<HqConsole> {
                   page = 0;
                   status = '전체 상태';
                   selected.clear();
+                  selectedShipments.clear();
                 }),
                 style: TextButton.styleFrom(
                   foregroundColor: tab == i
@@ -934,6 +945,22 @@ class _HqConsoleState extends State<HqConsole> {
           icon: const Icon(Icons.add),
           label: const Text('품의서 작성'),
         ),
+      if (section == 1 && activeType == 'shipment')
+        FilledButton.icon(
+          onPressed: dispatching || selectedShipments.isEmpty
+              ? null
+              : dispatchSelected,
+          icon: const Icon(Icons.local_shipping_outlined),
+          label: Text(
+            dispatching ? '처리 중...' : '배송 (${selectedShipments.length})',
+          ),
+        ),
+      if (section == 6 && ['employee', 'store'].contains(activeType))
+        FilledButton.icon(
+          onPressed: () => addMasterRecord(activeType),
+          icon: const Icon(Icons.add),
+          label: Text(activeType == 'employee' ? '직원 추가' : '대리점 추가'),
+        ),
     ],
   );
   Future<void> pickPeriod() async {
@@ -949,6 +976,56 @@ class _HqConsoleState extends State<HqConsole> {
         page = 0;
       });
       await reload();
+    }
+  }
+
+  Future<void> dispatchSelected() async {
+    if (dispatching || selectedShipments.isEmpty) return;
+    final rows = selectedShipments.values.toList();
+    setState(() => dispatching = true);
+    try {
+      await repository.dispatchShipments(rows);
+      if (!mounted) return;
+      await reload();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${rows.length}건을 배송 중으로 변경했습니다.')),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('배송 처리에 실패했습니다. 서버 연결과 선택한 배송 정보를 확인해 주세요.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => dispatching = false);
+    }
+  }
+
+  Future<void> addMasterRecord(String type) async {
+    final created = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => HqCreateRecordDialog(
+        repository: repository,
+        type: type,
+        occupiedDistricts: db
+            .rows('store')
+            .map((row) => row['district_name']?.toString().trim())
+            .whereType<String>()
+            .toSet(),
+      ),
+    );
+    if (created == true && mounted) {
+      await reload();
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('추가되었습니다.')));
+      }
     }
   }
 
@@ -1062,6 +1139,7 @@ class _HqConsoleState extends State<HqConsole> {
       '_order_date': '결제일자',
       'user_user_id': '고객명',
       'shoe_shoe_id': '상품정보',
+      '_shoe_code': '신발코드',
       'quantity': '수량',
       '_total': '상품 금액',
       '_store': '선택 대리점',
@@ -1072,13 +1150,10 @@ class _HqConsoleState extends State<HqConsole> {
     'shipment' => {
       'shipment_id': '발송번호',
       '_order': '주문번호',
-      '_date': '출고일시',
       'shoe_shoe_id': '상품정보',
       'delivery_quantity': '수량',
       'store_store_id': '도착 대리점',
-      '_carrier': '배송업체',
       'delivery_status': '배송상태',
-      '_eta': '예상 도착일',
     },
     'receive' => {
       'receive_id': '수령번호',
@@ -1086,7 +1161,6 @@ class _HqConsoleState extends State<HqConsole> {
       'user_user_id': '고객명',
       '_product': '상품정보',
       'store_store_id': '선택 대리점',
-      '_arrival': '대리점 도착일',
       'receive_verification_status': '인증상태 코드',
       'receive_status': '수령상태',
       'employee_employee_id': '담당자',
@@ -1137,9 +1211,6 @@ class _HqConsoleState extends State<HqConsole> {
       'agency_name': '대리점명',
       'district_name': '지역 / 자치구',
       'phone': '연락처',
-      '_manager': '담당자',
-      '_status': '상태',
-      '_modified': '최근 수정일',
     },
     'manufacturing' => {
       'manufacturing_id': '제조번호',
@@ -1166,6 +1237,20 @@ class _HqConsoleState extends State<HqConsole> {
     _ => hqFields[type] ?? {},
   };
   String display(String type, HqRow row, String field) {
+    if (field == '_shoe_code') return text(row['shoe_shoe_id']);
+    if (field == '_size' || field == '_color') {
+      final options = db.shoeCodeOptions(row['shoe_shoe_id']);
+      return text(options?[field == '_size' ? 'size' : 'color']);
+    }
+    if (field == '_product' && type == 'receive') {
+      return db.receivedProducts(row);
+    }
+    if (field == '_order' && type == 'shipment') {
+      return text(db.shipmentOrder(row)?['purchase_id']);
+    }
+    if (field == '_refund' && type == 'return_record') {
+      return db.returnRefundStatus(row);
+    }
     if (field == '_category') return text(row['shoe_category']);
     if (field == '_ratio') {
       final r = db.ratio(row);
@@ -1204,7 +1289,8 @@ class _HqConsoleState extends State<HqConsole> {
           ? db.name('store', 'store_id', row['store_store_id'], 'agency_name')
           : hqMissing;
     }
-    if (field == '_receive') return text(db.receipt(row)?['receive_status']);
+    if (field == '_delivery') return db.deliveryStatus(row);
+    if (field == '_receive') return db.receiveStatus(row);
     if (field == '_author') {
       return db.name(
         'employee',
@@ -1253,8 +1339,23 @@ class _HqConsoleState extends State<HqConsole> {
       activeType,
       sourceRows(),
       columns(activeType),
-      showSelection: ![1, 2, 3, 4, 6].contains(section),
+      showSelection:
+          activeType == 'shipment' || ![1, 2, 3, 4, 6].contains(section),
+      isRowSelected: activeType == 'shipment'
+          ? (row) => selectedShipments.containsKey(shipmentKey(row))
+          : null,
+      onRowSelected: activeType == 'shipment'
+          ? (row, checked) => setState(() {
+              final key = shipmentKey(row);
+              if (checked) {
+                selectedShipments[key] = row;
+              } else {
+                selectedShipments.remove(key);
+              }
+            })
+          : null,
       fillWidth:
+          (section == 1 && activeType == 'shipment') ||
           section == 4 ||
           (section == 6 &&
               ['employee', 'shoe_manufacturer'].contains(activeType)),
@@ -1276,6 +1377,8 @@ class _HqConsoleState extends State<HqConsole> {
     bool showSelection = true,
     Set<String>? selectedProducts,
     void Function(HqRow, bool)? onProductSelected,
+    bool Function(HqRow)? isRowSelected,
+    void Function(HqRow, bool)? onRowSelected,
   }) {
     final filtered = source.where((r) {
       if (!writing &&
@@ -1365,12 +1468,18 @@ class _HqConsoleState extends State<HqConsole> {
                       if (!compact && showSelection)
                         DataCell(
                           Checkbox(
-                            value: selectedProducts != null
+                            value: isRowSelected != null
+                                ? isRowSelected(row)
+                                : selectedProducts != null
                                 ? selectedProducts.contains(
                                     row['shoe_id'].toString(),
                                   )
                                 : selected.contains(safePage * 8 + i),
-                            onChanged: onProductSelected != null
+                            onChanged: dispatching
+                                ? null
+                                : onRowSelected != null
+                                ? (v) => onRowSelected(row, v == true)
+                                : onProductSelected != null
                                 ? (v) => onProductSelected(row, v == true)
                                 : (v) => setState(() {
                                     v == true
@@ -1634,6 +1743,7 @@ class _HqConsoleState extends State<HqConsole> {
                   Text(
                     amount(
                       db.rows(item.$1).isEmpty ? null : db.rows(item.$1).length,
+                      ['user', 'employee'].contains(item.$1) ? '명' : '개',
                     ),
                     style: const TextStyle(
                       fontSize: 20,
@@ -1872,29 +1982,6 @@ class _HqConsoleState extends State<HqConsole> {
                 '주소': hqMissing,
               }),
             ),
-          ),
-          pair(
-            panel(
-              '대리점 정보',
-              info({
-                '대리점명': display(type, r, '_store'),
-                '담당자': hqMissing,
-                '주소': hqMissing,
-              }),
-            ),
-            panel('배송 정보', empty()),
-          ),
-          pair(
-            panel(
-              '수령 인증 정보',
-              info({
-                '수령 상태': text(db.receipt(r)?['receive_status']),
-                '인증상태 코드': text(db.receipt(r)?['receive_verification_status']),
-                '인증 코드': hqMissing,
-                '만료시간': text(db.receipt(r)?['receive_expdate']),
-              }),
-            ),
-            panel('반품 요청 이력', empty()),
           ),
         ],
         if (type == 'shoe') ...[

@@ -19,6 +19,15 @@ class HqViewData {
 
   String name(String table, String key, dynamic id, String field) =>
       text(find(table, key, id)?[field] ?? id);
+  Map<String, String>? shoeCodeOptions(dynamic code) {
+    if (code is! String) return null;
+    final parts = code.split('_');
+    if (parts.length < 5 || parts.any((part) => part.isEmpty)) return null;
+    final size = parts[parts.length - 2];
+    if (num.tryParse(size) == null) return null;
+    return {'color': parts[parts.length - 4], 'size': size};
+  }
+
   HqRow? payment(HqRow order) =>
       find('payment', 'payment_id', order['payment_id']);
   HqRow? customer(HqRow order) =>
@@ -34,6 +43,43 @@ class HqViewData {
         .toList();
     // Multiple receipts cannot safely be reduced to a single destination.
     return matches.length == 1 ? matches.single : null;
+  }
+
+  String deliveryStatus(HqRow order) {
+    if (order['purchase_id'] == null) return hqMissing;
+    final shipments = rows('shipment').where(
+      (row) =>
+          row['purchase_purchase_id'] == order['purchase_id'] &&
+          row['shoe_shoe_id'] == order['shoe_shoe_id'] &&
+          (order['store_store_id'] == null ||
+              row['store_store_id'] == order['store_store_id']),
+    );
+    if (shipments.isEmpty) return '출고 대기중';
+    final states = shipments.map((row) {
+      final state = row['delivery_status'];
+      return state == null ||
+              state == '' ||
+              ['Preparing pickup', '발송준비', '출고대기'].contains(state)
+          ? '출고 대기중'
+          : text(state);
+    }).toSet();
+    return states.join(', ');
+  }
+
+  String receiveStatus(HqRow order) {
+    if (order['payment_id'] == null || order['user_user_id'] == null) {
+      return hqMissing;
+    }
+    final receipts = rows('receive').where(
+      (row) =>
+          row['receive_payment_id'] == order['payment_id'] &&
+          row['user_user_id'] == order['user_user_id'] &&
+          (order['store_store_id'] == null ||
+              row['store_store_id'] == order['store_store_id']),
+    );
+    if (receipts.isEmpty) return '미수령';
+    final states = receipts.map((row) => text(row['receive_status'])).toSet();
+    return states.length == 1 ? states.single : hqMissing;
   }
 
   HqRow? latestApproval(dynamic id) {
@@ -55,6 +101,47 @@ class HqViewData {
       return null;
     }
     return first;
+  }
+
+  String receivedProducts(HqRow receipt) {
+    if (receipt['receive_payment_id'] == null ||
+        receipt['user_user_id'] == null) {
+      return hqMissing;
+    }
+    final purchases = rows('purchase').where(
+      (row) =>
+          row['payment_id'] == receipt['receive_payment_id'] &&
+          row['user_user_id'] == receipt['user_user_id'],
+    );
+    final names = purchases
+        .where((row) => row['shoe_shoe_id'] != null)
+        .map(
+          (row) => name('shoe', 'shoe_id', row['shoe_shoe_id'], 'brand_name'),
+        )
+        .toSet();
+    return names.isEmpty ? hqMissing : names.join(', ');
+  }
+
+  HqRow? shipmentOrder(HqRow shipment) {
+    final id = shipment['purchase_purchase_id'];
+    if (id == null) return null;
+    final matches = rows('purchase')
+        .where(
+          (row) =>
+              row['purchase_id'] == id &&
+              row['shoe_shoe_id'] == shipment['shoe_shoe_id'],
+        )
+        .toList();
+    return matches.length == 1 ? matches.single : null;
+  }
+
+  String returnRefundStatus(HqRow returned) {
+    final id = returned['refund_refund_id'];
+    if (id == null) return hqMissing;
+    final matches = rows(
+      'refund',
+    ).where((row) => row['refund_id'] == id).toList();
+    return matches.length == 1 ? '환불완료' : hqMissing;
   }
 
   num? sum(List<HqRow> source, String field) {

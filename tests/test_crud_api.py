@@ -75,12 +75,49 @@ class CrudApiTests(unittest.TestCase):
         response = self.client.put("/user/update/missing", data={})
         self.assertEqual(response.status_code, 422)
 
+    def test_shipment_order_link_validates_product_and_saves(self):
+        order_id = 'ORD-20261006-857D86F6'
+        self.cursor.fetchall.return_value = [{'purchase_id': order_id}]
+        payload = {'shoe_shoe_id': 'shoe1', 'employee_employee_id': 'employee1',
+                   'shipment_id': 'shipment1', 'store_store_id': 'store1',
+                   'purchase_purchase_id': order_id}
+        response = self.client.post('/shipment/upload', data=payload)
+        self.assertEqual(response.status_code, 200, response.text)
+        sql, params = self.cursor.execute.call_args.args
+        self.assertIn('purchase_purchase_id', sql)
+        self.assertIn(order_id, params)
+        self.cursor.fetchall.return_value = []
+        self.conn.reset_mock()
+        response = self.client.post('/shipment/upload', data=payload)
+        self.assertEqual(response.status_code, 422)
+        self.conn.commit.assert_not_called()
+
+
     def test_input_validation_prevents_database_access(self):
         response = self.client.post("/user/upload", data={"user_id": "x" * 13})
         self.assertEqual(response.status_code, 422)
         response = self.client.put("/shoe/update/sample", data={"stock_quantity": "abc"})
         self.assertEqual(response.status_code, 422)
         self.conn.cursor.assert_not_called()
+
+    def test_return_refund_link_create_update_and_invalid_ids(self):
+        self.cursor.fetchall.return_value = [{'refund_id': 'refund1'}]
+        payload = {'shoe_shoe_id': 'shoe1', 'employee_employee_id': 'employee1',
+                   'return_id': 'return1', 'refund_refund_id': 'refund1'}
+        response = self.client.post('/return_record/upload', data=payload)
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertIn('refund_refund_id', self.cursor.execute.call_args.args[0])
+        response = self.client.put('/return_record/update/shoe1/employee1/return1',
+                                   data={'refund_refund_id': 'refund1'})
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(self.cursor.execute.call_args.args[1][0], 'refund1')
+        for matches in ([], [{'refund_id': 'refund1'}, {'refund_id': 'refund1'}]):
+            self.conn.reset_mock()
+            self.cursor.fetchall.return_value = matches
+            response = self.client.post('/return_record/upload', data=payload)
+            self.assertEqual(response.status_code, 422)
+            self.conn.commit.assert_not_called()
+            self.conn.rollback.assert_called_once()
 
     def test_constraint_error_rolls_back(self):
         self.cursor.execute.side_effect = pymysql.IntegrityError(1062, "Duplicate")

@@ -14,6 +14,7 @@ def upload(
     shoe_price: str | None = Form(None, max_length=45),
     standard_stock: int | None = Form(None, ge=-2147483648, le=2147483647),
     stock_quantity: int | None = Form(None, ge=-2147483648, le=2147483647),
+    manufacturer_name: str | None = Form(None, min_length=1, max_length=45),
     shoe_img_url: str | None = Form(None),
     shoe_name: str | None = Form(None, max_length=45),
 ):
@@ -27,6 +28,7 @@ def upload(
         stock_quantity,
         shoe_img_url=shoe_img_url,
         shoe_name=shoe_name,
+        manufacturer_name=manufacturer_name,
     )
 
 

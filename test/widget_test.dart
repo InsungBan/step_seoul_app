@@ -146,7 +146,6 @@ Map<String, dynamic> records() {
   return data;
 }
 
-
 http.Response response(Map<String, dynamic> data) => http.Response(
   jsonEncode({'result': data}),
   200,
@@ -371,6 +370,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(saved, isTrue);
     expect(tester.takeException(), isNull);
+  });
   testWidgets('로그인 화면을 표시한다', (WidgetTester tester) async {
     await tester.pumpWidget(const MaterialApp(home: Login()));
 
