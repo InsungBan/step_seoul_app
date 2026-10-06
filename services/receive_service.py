@@ -1,7 +1,39 @@
+import pymysql
 from fastapi import HTTPException
+
+from db.database import db
 
 from services._database import execute
 
+
+def ensure_pickup_link_columns():
+    """Preserve the exact product and purchase for employee-created pickups."""
+    conn = None
+    try:
+        conn = db()
+        tick = chr(96)
+        columns = {
+            "receive_shoe_id": "VARCHAR(20) NULL",
+            "receive_purchase_id": "VARCHAR(45) NULL",
+        }
+        with conn.cursor() as cursor:
+            for name, definition in columns.items():
+                cursor.execute(
+                    f"SHOW COLUMNS FROM {tick}receive{tick} WHERE Field = %s",
+                    (name,),
+                )
+                if cursor.fetchone() is None:
+                    cursor.execute(
+                        f"ALTER TABLE {tick}receive{tick} ADD COLUMN {tick}{name}{tick} {definition}"
+                    )
+        conn.commit()
+    except pymysql.MySQLError as error:
+        if conn is not None:
+            conn.rollback()
+        raise RuntimeError("Could not prepare pickup link columns") from error
+    finally:
+        if conn is not None:
+            conn.close()
 
 def create_receive(
     store_store_id: str,

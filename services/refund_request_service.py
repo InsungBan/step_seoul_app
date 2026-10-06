@@ -7,6 +7,33 @@ from fastapi import HTTPException
 from db.database import db
 
 
+def ensure_refund_request_columns():
+    """Add order and status metadata needed by the employee return queue."""
+    conn = None
+    try:
+        conn = db()
+        tick = chr(96)
+        columns = {
+            "return_order_id": "VARCHAR(45) NULL",
+            "return_shoe_id": "VARCHAR(20) NULL",
+            "return_requested_at": "DATETIME NULL",
+            "return_status": "VARCHAR(24) NOT NULL DEFAULT 'Requested'",
+            "return_detail_reason": "VARCHAR(200) NULL",
+        }
+        with conn.cursor() as cursor:
+            for name, definition in columns.items():
+                cursor.execute(f"SHOW COLUMNS FROM {tick}refund{tick} WHERE Field = %s", (name,))
+                if cursor.fetchone() is None:
+                    cursor.execute(f"ALTER TABLE {tick}refund{tick} ADD COLUMN {tick}{name}{tick} {definition}")
+        conn.commit()
+    except pymysql.MySQLError as error:
+        if conn is not None:
+            conn.rollback()
+        raise RuntimeError("Could not prepare refund request metadata") from error
+    finally:
+        if conn is not None:
+            conn.close()
+
 def create_refund_request(
     user_id: str,
     order_id: str,
@@ -54,12 +81,13 @@ def create_refund_request(
             if detail_reason and detail_reason.strip():
                 reason_text = f"{reason_text}: {detail_reason.strip()}"
             cursor.execute(
-                """
-                INSERT INTO `refund`
-                  (`user_user_id`, `employee_employee_id`, `refund_id`,
-                   `refund_amount`, `refund_quantity`, `refund_reason`, `refund_cardnumber`)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-                """,
+                "INSERT INTO " + chr(96) + "refund" + chr(96) + " "
+                "(" + ", ".join(chr(96) + name + chr(96) for name in (
+                    "user_user_id", "employee_employee_id", "refund_id",
+                    "refund_amount", "refund_quantity", "refund_reason",
+                    "refund_cardnumber", "return_order_id", "return_shoe_id",
+                    "return_requested_at", "return_status", "return_detail_reason",
+                )) + ") VALUES (" + ", ".join(["%s"] * 12) + ")",
                 (
                     user_id,
                     employee["employee_id"],
@@ -68,6 +96,11 @@ def create_refund_request(
                     str(quantity),
                     reason_text[:45],
                     None,
+                    order_id,
+                    shoe_id,
+                    datetime.now(),
+                    "Requested",
+                    detail_reason.strip()[:200] if detail_reason else None,
                 ),
             )
         conn.commit()
