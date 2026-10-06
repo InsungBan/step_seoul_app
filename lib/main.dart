@@ -21,7 +21,7 @@ import 'package:step_seoul_app/view/customer/product_list.dart';
 import 'package:step_seoul_app/view/customer/profile_edit.dart';
 import 'package:step_seoul_app/view/customer/return_request.dart';
 import 'package:step_seoul_app/view/employee/work_home.dart';
-import 'package:step_seoul_app/view/executive/executive_dashboard.dart';
+import 'package:step_seoul_app/hq/hq_console.dart';
 
 import 'firebase_options.dart';
 
@@ -113,7 +113,7 @@ class MyApp extends StatelessWidget {
         GetPage(name: AppRoutes.employeeWorkHome, page: () => const WorkHome()),
         GetPage(
           name: AppRoutes.executiveDashboard,
-          page: () => const ExecutiveDashboard(),
+          page: () => HqConsole(currentEmployeeId: Get.arguments as String?),
         ),
       ],
     );

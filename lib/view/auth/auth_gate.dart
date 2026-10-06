@@ -32,7 +32,7 @@ class _AuthGateState extends State<AuthGate> {
       UserRole.employee => AppRoutes.employeeWorkHome,
       UserRole.executive => AppRoutes.executiveDashboard,
       null => AppRoutes.login,
-    });
+    }, arguments: session?.role == UserRole.executive ? session!.userId : null);
   }
 
   @override

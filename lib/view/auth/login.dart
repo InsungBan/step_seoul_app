@@ -62,7 +62,10 @@ class _LoginState extends State<Login> {
           Get.offAllNamed(AppRoutes.employeeWorkHome);
           return;
         case _LoginDestination.executive:
-          Get.offAllNamed(AppRoutes.executiveDashboard);
+          Get.offAllNamed(
+            AppRoutes.executiveDashboard,
+            arguments: _idController.text.trim(),
+          );
           return;
       }
     } on _LoginException catch (error) {
@@ -682,7 +685,9 @@ class _LoginRepository {
 
     // 3. 직급(position) 및 부서(department)를 바탕으로 Destination 구분
     final position = (employee['employee_position'] ?? '').toString().trim();
-    final department = (employee['employee_department'] ?? '').toString().trim();
+    final department = (employee['employee_department'] ?? '')
+        .toString()
+        .trim();
 
     return _determineDestination(position: position, department: department);
   }
