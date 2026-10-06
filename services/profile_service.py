@@ -2,6 +2,7 @@ import pymysql
 from fastapi import HTTPException
 
 from db.database import db
+from services.password_service import hash_password, verify_password
 
 
 def read_customer_profile(user_id: str):
@@ -45,11 +46,11 @@ def update_customer_profile(
             if not changes["user_name"] or not changes["user_phone"]:
                 raise HTTPException(status_code=422, detail="Name and phone number are required")
             if new_password:
-                if not current_password or current_password != user.get("user_pw"):
+                if not current_password or not verify_password(current_password, user.get("user_pw")):
                     raise HTTPException(status_code=403, detail="Current password does not match")
                 if len(new_password) < 8:
                     raise HTTPException(status_code=422, detail="New password must be at least 8 characters")
-                changes["user_pw"] = new_password
+                changes["user_pw"] = hash_password(new_password)
             assignments = ", ".join(f"`{field}` = %s" for field in changes)
             cursor.execute(
                 f"UPDATE `user` SET {assignments} WHERE `user_id` = %s",

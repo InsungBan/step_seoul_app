@@ -7,13 +7,13 @@ import 'package:step_seoul_app/main.dart';
 import 'package:step_seoul_app/routes/app_routes.dart';
 import 'package:step_seoul_app/routes/route_arguments.dart';
 import 'package:step_seoul_app/services/customer_home_service.dart';
+import 'package:step_seoul_app/hq/hq_console.dart';
 import 'package:step_seoul_app/view/auth/login.dart';
 import 'package:step_seoul_app/view/auth/register.dart';
 import 'package:step_seoul_app/view/customer/branch_list.dart';
 import 'package:step_seoul_app/view/customer/checkout_payment.dart';
 import 'package:step_seoul_app/view/customer/product_detail.dart';
 import 'package:step_seoul_app/view/customer/product_list.dart';
-import 'package:step_seoul_app/view/executive/executive_dashboard.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -165,7 +165,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(Get.currentRoute, AppRoutes.executiveDashboard);
-    expect(find.byType(ExecutiveDashboard), findsOneWidget);
+    expect(find.byType(HqConsole), findsOneWidget);
     expect(Get.key.currentState!.canPop(), isFalse);
   });
 }

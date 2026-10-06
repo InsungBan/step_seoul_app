@@ -1,12 +1,12 @@
-import pymysql
+import logging
+import re
 from datetime import datetime
+
+import pymysql
 from fastapi import HTTPException
 
 from db.database import db
 from services._database import execute
-from db.database import db
-import pymysql
-import logging
 
 
 def dispatch_shipments(shipments):
@@ -88,13 +88,8 @@ def read_shipment_in_transit():
             p.quantity AS pickup_purchase_quantity
         FROM shipment AS s
         LEFT JOIN purchase AS p
-          ON p.shoe_shoe_id = s.shoe_shoe_id
-         AND (
-              p.purchase_id = s.shipment_id
-              OR p.payment_id = s.shipment_id
-              OR SUBSTRING_INDEX(p.purchase_id, '-', -1) =
-                 SUBSTRING_INDEX(SUBSTRING_INDEX(s.shipment_id, '-', -2), '-', 1)
-         )
+          ON p.purchase_id = s.purchase_purchase_id
+         AND p.shoe_shoe_id = s.shoe_shoe_id
         WHERE LOWER(REPLACE(REPLACE(COALESCE(s.delivery_status, ''), ' ', ''), '_', ''))
           IN ('배송중', '매장으로배송중', '물류센터이동중', 'intransit', 'transit')
         ORDER BY s.shipment_id
@@ -149,7 +144,6 @@ def update_shipment(
     data = {
         "delivery_status": delivery_status,
         "delivery_quantity": delivery_quantity,
-        "purchase_purchase_id": purchase_purchase_id,
     }
     data = {name: value for name, value in data.items() if value is not None}
     if not data:
@@ -249,3 +243,53 @@ def delete_shipment(
     keys = (shoe_shoe_id, employee_employee_id, shipment_id, store_store_id,)
     return execute("DELETE FROM `shipment` WHERE `shoe_shoe_id` = %s AND `employee_employee_id` = %s AND `shipment_id` = %s AND `store_store_id` = %s", keys, action="DELETE",
                    existence=("SELECT 1 FROM `shipment` WHERE `shoe_shoe_id` = %s AND `employee_employee_id` = %s AND `shipment_id` = %s AND `store_store_id` = %s FOR UPDATE", keys))
+def ensure_shipment_purchase_links():
+    """Ensure direct order links exist and backfill unambiguous legacy rows."""
+    conn = db()
+    try:
+        with conn.cursor(pymysql.cursors.DictCursor) as cursor:
+            cursor.execute(
+                "SELECT 1 FROM information_schema.COLUMNS "
+                "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'shipment' "
+                "AND COLUMN_NAME = 'purchase_purchase_id'"
+            )
+            if cursor.fetchone() is None:
+                cursor.execute(
+                    "ALTER TABLE `shipment` ADD COLUMN `purchase_purchase_id` VARCHAR(45) NULL"
+                )
+            cursor.execute(
+                "SELECT `shoe_shoe_id`, `employee_employee_id`, `shipment_id`, `store_store_id` "
+                "FROM `shipment` WHERE `purchase_purchase_id` IS NULL "
+                "OR TRIM(`purchase_purchase_id`) = ''"
+            )
+            for shipment in cursor.fetchall():
+                match = re.match(r"^SHP-([^-]+)-[0-9]+$", shipment["shipment_id"] or "")
+                if not match:
+                    continue
+                suffix = match.group(1)
+                cursor.execute(
+                    "SELECT `purchase_id` FROM `purchase` WHERE `shoe_shoe_id` = %s "
+                    "AND `purchase_id` LIKE %s",
+                    (shipment["shoe_shoe_id"], f"%-{suffix}"),
+                )
+                purchases = cursor.fetchall()
+                if len(purchases) != 1:
+                    continue
+                cursor.execute(
+                    "UPDATE `shipment` SET `purchase_purchase_id` = %s "
+                    "WHERE `shoe_shoe_id` = %s AND `employee_employee_id` = %s "
+                    "AND `shipment_id` = %s AND `store_store_id` = %s",
+                    (
+                        purchases[0]["purchase_id"],
+                        shipment["shoe_shoe_id"],
+                        shipment["employee_employee_id"],
+                        shipment["shipment_id"],
+                        shipment["store_store_id"],
+                    ),
+                )
+        conn.commit()
+    except pymysql.MySQLError:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()

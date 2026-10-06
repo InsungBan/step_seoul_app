@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Form
 from pydantic import BaseModel, Field
 
-from services.user_service import create_user, read_user, update_user, delete_user
+from services.user_service import create_user, read_user, user_exists, update_user, delete_user
 from services.profile_service import read_customer_profile, update_customer_profile
 
 router = APIRouter(prefix="/user", tags=["user"])
@@ -39,6 +39,11 @@ def upload(
 @router.get("/select")
 def select():
     return read_user()
+
+
+@router.get("/exists/{user_id}")
+def exists(user_id: str):
+    return user_exists(user_id)
 
 
 @router.put("/update/{user_id}")

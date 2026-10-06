@@ -12,6 +12,9 @@ const _blue = Color(0xFF2F67E8);
 const _navy = Color(0xFF102455);
 const _muted = Color(0xFF71829C);
 
+bool isExecutiveDepartment(Object? department) =>
+    department?.toString().trim() == '\uBCF8\uC0AC';
+
 class Login extends StatefulWidget {
   const Login({super.key});
   @override
@@ -650,84 +653,29 @@ class _LoginRepository {
     required String id,
     required String password,
   }) async {
-    final responses = await Future.wait([
-      http.get(Uri.parse('$_apiBaseUrl/user/select')),
-      http.get(Uri.parse('$_apiBaseUrl/employee/select')),
-    ]).timeout(const Duration(seconds: 10));
+    final response = await http
+        .post(
+          Uri.parse('$_apiBaseUrl/authentication/login'),
+          headers: const {'Content-Type': 'application/json'},
+          body: jsonEncode({'account_id': id, 'password': password}),
+        )
+        .timeout(const Duration(seconds: 10));
 
     // 1. 일반 고객(User) 체크
-    final user = _records(responses[0])
-        .where(
-          (row) =>
-              row['user_id']?.toString() == id &&
-              row['user_pw']?.toString() == password,
-        )
-        .firstOrNull;
-    if (user != null) return _LoginDestination.customer;
-
-    // 2. 직원(Employee) 체크
-    final employee = _records(responses[1])
-        .where(
-          (row) =>
-              row['employee_id']?.toString() == id &&
-              row['employee_pw']?.toString() == password,
-        )
-        .firstOrNull;
-
-    if (employee == null) {
+    if (response.statusCode == 401) {
       throw const _LoginException('Invalid ID or password.');
     }
-
-    // 3. 직급(position) 및 부서(department)를 바탕으로 Destination 구분
-    final position = (employee['employee_position'] ?? '').toString().trim();
-    final department = (employee['employee_department'] ?? '').toString().trim();
-
-    return _determineDestination(position: position, department: department);
-  }
-
-  /// 직급과 부서를 기반으로 임원 / 대리점 직원 구분을 정밀하게 수행합니다.
-  _LoginDestination _determineDestination({
-    required String position,
-    required String department,
-  }) {
-    // 1) 임원 직급 목록
-    const executivePositions = {
-      '임원',
-      '이사',
-      '상무',
-      '전무',
-      '부사장',
-      '사장',
-      '대표',
-      'CEO',
-      'CFO',
-      'CTO',
-    };
-
-    // 직급 자체가 임원에 해당하거나 (예: "임원", "이사")
-    if (executivePositions.contains(position)) {
-      return _LoginDestination.executive;
-    }
-
-    // 부서가 '본사'이고 특정 고위 직급인 경우 추가 처리 예시
-    if (department == '본사' && position == '임원') {
-      return _LoginDestination.executive;
-    }
-
-    // 2) 그 외 (대리점직원, 사원, 대리, 팀장, 부장 등) -> 일반 직원 페이지로 이동
-    return _LoginDestination.employee;
-  }
-
-  List<Map<String, dynamic>> _records(http.Response response) {
     if (response.statusCode != 200) {
-      throw const _LoginException('Could not load account information.');
+      throw const _LoginException('Could not sign in.');
     }
     final decoded = jsonDecode(utf8.decode(response.bodyBytes));
-    final result = decoded is Map<String, dynamic> ? decoded['result'] : null;
-    if (result is! List) throw const _LoginException('Invalid account data.');
-    return result
-        .whereType<Map>()
-        .map((row) => Map<String, dynamic>.from(row))
-        .toList();
+    final result = decoded is Map ? decoded['result'] : null;
+    final role = result is Map ? result['role']?.toString() : null;
+    return switch (role) {
+      'customer' => _LoginDestination.customer,
+      'employee' => _LoginDestination.employee,
+      'executive' => _LoginDestination.executive,
+      _ => throw const _LoginException('Invalid login response.'),
+    };
   }
 }

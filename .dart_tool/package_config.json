@@ -327,7 +327,7 @@
     },
     {
       "name": "jni_flutter",
-      "rootUri": "file:///C:/Users/mega/AppData/Local/Pub/Cache/hosted/pub.dev/jni_flutter-1.0.3",
+      "rootUri": "file:///C:/Users/mega/AppData/Local/Pub/Cache/hosted/pub.dev/jni_flutter-1.0.4+1",
       "packageUri": "lib/",
       "languageVersion": "3.3"
     },
@@ -531,7 +531,7 @@
     },
     {
       "name": "sqflite",
-      "rootUri": "file:///C:/Users/mega/AppData/Local/Pub/Cache/hosted/pub.dev/sqflite-2.4.4",
+      "rootUri": "file:///C:/Users/mega/AppData/Local/Pub/Cache/hosted/pub.dev/sqflite-2.4.4+1",
       "packageUri": "lib/",
       "languageVersion": "3.12"
     },
@@ -543,7 +543,7 @@
     },
     {
       "name": "sqflite_common",
-      "rootUri": "file:///C:/Users/mega/AppData/Local/Pub/Cache/hosted/pub.dev/sqflite_common-2.5.13",
+      "rootUri": "file:///C:/Users/mega/AppData/Local/Pub/Cache/hosted/pub.dev/sqflite_common-2.5.13+1",
       "packageUri": "lib/",
       "languageVersion": "3.12"
     },

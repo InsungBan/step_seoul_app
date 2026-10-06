@@ -1,6 +1,59 @@
+import pymysql
 from fastapi import HTTPException
 
+from db.database import db
 from services._database import execute
+from services.password_service import hash_password, verify_password
+
+
+def authenticate_account(account_id: str, password: str):
+    """Validate credentials on the server without returning password fields."""
+    conn = db()
+    try:
+        with conn.cursor(pymysql.cursors.DictCursor) as cursor:
+            cursor.execute(
+                "SELECT `user_id` AS account_id, `user_pw` AS password "
+                "FROM `user` WHERE `user_id` = %s LIMIT 1",
+                (account_id,),
+            )
+            account = cursor.fetchone()
+            role = "customer"
+            if account is None:
+                cursor.execute(
+                    "SELECT `employee_id` AS account_id, `employee_pw` AS password, "
+                    "`employee_department` AS department "
+                    "FROM `employee` WHERE `employee_id` = %s LIMIT 1",
+                    (account_id,),
+                )
+                account = cursor.fetchone()
+                role = (
+                    "executive"
+                    if account and str(account.get("department") or "").strip() == "본사"
+                    else "employee"
+                )
+            if account is None or not verify_password(password, account.get("password")):
+                raise HTTPException(status_code=401, detail="Invalid ID or password")
+
+            # Compatibility for a server upgraded before the startup migration ran.
+            stored = str(account.get("password") or "")
+            if not stored.startswith("pbkdf2_sha256$"):
+                table = "user" if role == "customer" else "employee"
+                id_column = "user_id" if role == "customer" else "employee_id"
+                password_column = "user_pw" if role == "customer" else "employee_pw"
+                cursor.execute(
+                    f"UPDATE `{table}` SET `{password_column}` = %s WHERE `{id_column}` = %s",
+                    (hash_password(password), account_id),
+                )
+        conn.commit()
+        return {"result": {"account_id": account_id, "role": role}}
+    except HTTPException:
+        conn.rollback()
+        raise
+    except pymysql.MySQLError:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail="Could not authenticate account") from None
+    finally:
+        conn.close()
 
 
 def create_authentication(

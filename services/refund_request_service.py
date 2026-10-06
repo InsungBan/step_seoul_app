@@ -8,14 +8,14 @@ from db.database import db
 
 
 def ensure_refund_request_columns():
-    """Add order and status metadata needed by the employee return queue."""
+    """Ensure the refund table has the metadata columns required for return requests."""
     conn = None
     try:
         conn = db()
         tick = chr(96)
         columns = {
             "return_order_id": "VARCHAR(45) NULL",
-            "return_shoe_id": "VARCHAR(20) NULL",
+            "return_shoe_id": "VARCHAR(45) NULL",
             "return_requested_at": "DATETIME NULL",
             "return_status": "VARCHAR(24) NOT NULL DEFAULT 'Requested'",
             "return_detail_reason": "VARCHAR(200) NULL",
@@ -23,8 +23,19 @@ def ensure_refund_request_columns():
         with conn.cursor() as cursor:
             for name, definition in columns.items():
                 cursor.execute(f"SHOW COLUMNS FROM {tick}refund{tick} WHERE Field = %s", (name,))
-                if cursor.fetchone() is None:
+                column = cursor.fetchone()
+                if column is None:
                     cursor.execute(f"ALTER TABLE {tick}refund{tick} ADD COLUMN {tick}{name}{tick} {definition}")
+                    continue
+                column_type = str(column[1]).lower()
+                if name == "return_shoe_id" and "varchar(45)" not in column_type:
+                    cursor.execute(
+                        f"ALTER TABLE {tick}refund{tick} MODIFY COLUMN {tick}{name}{tick} {definition}"
+                    )
+                elif name == "return_status" and "varchar(24)" not in column_type:
+                    cursor.execute(
+                        f"ALTER TABLE {tick}refund{tick} MODIFY COLUMN {tick}{name}{tick} {definition}"
+                    )
         conn.commit()
     except pymysql.MySQLError as error:
         if conn is not None:
@@ -43,6 +54,7 @@ def create_refund_request(
     detail_reason: str | None,
 ):
     """Creates a customer refund request after confirming order ownership."""
+    ensure_refund_request_columns()
     conn = None
     try:
         conn = db()

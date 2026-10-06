@@ -5,11 +5,9 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:step_seoul_app/routes/app_routes.dart';
+import 'package:step_seoul_app/services/api_config.dart';
 
-const _apiBaseUrl = String.fromEnvironment(
-  'API_BASE_URL',
-  defaultValue: 'http://10.0.2.2:8000',
-);
+const _apiBaseUrl = ApiConfig.baseUrl;
 const _blue = Color(0xFF2F67E8);
 const _navy = Color(0xFF102455);
 const _fieldBorder = Color(0xFFD8E3F4);
@@ -57,18 +55,14 @@ class _RegisterState extends State<Register> {
     });
     try {
       final response = await http
-          .get(Uri.parse('$_apiBaseUrl/user/select'))
+          .get(Uri.parse('$_apiBaseUrl/user/exists/${Uri.encodeComponent(id)}'))
           .timeout(const Duration(seconds: 10));
       if (response.statusCode != 200) {
         throw const _RegisterException('Could not check ID availability.');
       }
       final decoded = jsonDecode(utf8.decode(response.bodyBytes));
-      final records = decoded is Map<String, dynamic>
-          ? decoded['result']
-          : null;
-      final exists =
-          records is List &&
-          records.any((row) => row is Map && row['user_id']?.toString() == id);
+      final result = decoded is Map<String, dynamic> ? decoded['result'] : null;
+      final exists = result is Map && result['exists'] == true;
       if (!mounted) return;
       if (exists) {
         _message(
