@@ -23,8 +23,8 @@ def submit_approval(title: str, content: str, employee_id: str, requested_amount
             if cursor.fetchone() is None:
                 raise HTTPException(status_code=422, detail='Approval employee does not exist')
             cursor.execute(
-                'INSERT INTO approval (approval_id, approval_name, approval_content, requested_amount) VALUES (%s, %s, %s, %s)',
-                (ident, title, content, requested_amount),
+                'INSERT INTO approval (approval_id, approval_name, approval_content, requested_amount, approval_date) VALUES (%s, %s, %s, %s, %s)',
+                (ident, title, content, requested_amount, created),
             )
             cursor.execute(
                 'INSERT INTO approval_process (employee_employee_id, approval_approval_id, approval_process_id, approval_date, team_leader_approval, director_approval, approval_status) VALUES (%s, %s, %s, %s, %s, %s, %s)',
@@ -57,6 +57,7 @@ def create_approval(
         "approval_id": approval_id,
         "approval_name": approval_name,
         "approval_content": approval_content,
+        "approval_date": datetime.now(timezone(timedelta(hours=9))).strftime('%Y-%m-%d %H:%M:%S'),
     }
     data = {name: value for name, value in data.items() if value is not None}
     columns = ", ".join(f"`{name}`" for name in data)

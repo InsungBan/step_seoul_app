@@ -39,6 +39,7 @@ const hqFields = <String, Map<String, String>>{
     'approval_id': '품의 ID',
     'approval_name': '품의명',
     'approval_content': '내용',
+    'approval_date': '작성일자',
   },
   'approval_process': {
     'approval_process_id': '결재 ID',
