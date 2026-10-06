@@ -158,6 +158,68 @@ class HqRepository {
   }
 
   void close() => _client.close();
+
+  Future<void> dispatchShipments(List<HqRow> shipments) async {
+    final response = await _client
+        .put(
+          Uri.parse(
+            '${baseUrl.replaceAll(RegExp(r'/+$'), '')}/shipment/dispatch',
+          ),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'shipments': shipments
+                .map(
+                  (row) => {
+                    for (final key in [
+                      'shoe_shoe_id',
+                      'employee_employee_id',
+                      'shipment_id',
+                      'store_store_id',
+                    ])
+                      key: row[key],
+                  },
+                )
+                .toList(),
+          }),
+        )
+        .timeout(const Duration(seconds: 15));
+    if (response.statusCode != 200) {
+      throw Exception('Dispatch failed (${response.statusCode})');
+    }
+    final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+    if (decoded is! Map || decoded['result'] != 'UPDATE OK') {
+      throw const FormatException('Invalid dispatch response');
+    }
+  }
+
+  Future<void> createMasterRecord(
+    String type,
+    Map<String, String> fields,
+  ) async {
+    if (!['employee', 'store'].contains(type)) {
+      throw ArgumentError('Invalid record type');
+    }
+    final response = await _client
+        .post(
+          Uri.parse('${baseUrl.replaceAll(RegExp(r'/+$'), '')}/$type/upload'),
+          body: fields,
+        )
+        .timeout(const Duration(seconds: 15));
+    if (response.statusCode == 409) {
+      throw Exception(
+        type == 'store'
+            ? '이미 등록된 자치구 또는 대리점 ID입니다. 목록을 새로고침해 주세요.'
+            : '이미 등록된 직원 ID입니다.',
+      );
+    }
+    if (response.statusCode != 200) {
+      throw Exception('저장에 실패했습니다. 입력 정보와 서버 연결을 확인해 주세요.');
+    }
+    final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+    if (decoded is! Map || decoded['result'] != 'CREATE OK') {
+      throw const FormatException('Invalid creation response');
+    }
+  }
 }
 
 String hqNumber(num value) => value

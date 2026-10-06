@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'hq/hq_console.dart';
-import 'hq/hq_palette.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:get/get.dart';
 import 'package:step_seoul_app/routes/app_routes.dart';

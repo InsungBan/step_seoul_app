@@ -8,11 +8,16 @@ from db.database import db
 logger = logging.getLogger(__name__)
 
 
-def execute(sql, params=(), action=None, existence=None):
+def execute(sql, params=(), action=None, existence=None, validation=None,
+            validation_error='Order must uniquely match the shipment product'):
     conn = None
     try:
         conn = db()
         with conn.cursor(pymysql.cursors.DictCursor) as curs:
+            if validation is not None:
+                curs.execute(*validation)
+                if len(curs.fetchall()) != 1:
+                    raise HTTPException(status_code=422, detail=validation_error)
             if existence is not None:
                 curs.execute(*existence)
                 if curs.fetchone() is None:

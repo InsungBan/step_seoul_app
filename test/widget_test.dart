@@ -146,7 +146,6 @@ Map<String, dynamic> records() {
   return data;
 }
 
-
 http.Response response(Map<String, dynamic> data) => http.Response(
   jsonEncode({'result': data}),
   200,
@@ -373,6 +372,154 @@ void main() {
   //   expect(tester.takeException(), isNull);
   // });
 
+  testWidgets('Reference layout, DB details, missing cells and tablet widths', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1600, 1100);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final repo = HqRepository(
+      client: MockClient((_) async => response(records())),
+    );
+    addTearDown(repo.close);
+    final boundary = GlobalKey();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: RepaintBoundary(
+          key: boundary,
+          child: HqConsole(repository: repo),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('本社'), findsNothing);
+    expect(find.text('본사 임원 대시보드'), findsOneWidget);
+    expect(find.text('최근 7일 판매금액'), findsOneWidget);
+    expect(find.text('최종 승인 요청'), findsOneWidget);
+    expect(find.text('178,000원'), findsWidgets);
+    expect(tester.takeException(), isNull);
+    await tester.runAsync(() async {
+      final render =
+          boundary.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+      final image = await render.toImage();
+      final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+      await Directory('build').create(recursive: true);
+      await File(
+        'build/hq_dashboard_preview.png',
+      ).writeAsBytes(bytes!.buffer.asUint8List());
+      image.dispose();
+    });
+    await tester.tap(find.text('주문 · 배송').first);
+    await tester.pumpAndSettle();
+    expect(find.text('DB 고객'), findsOneWidget);
+    expect(find.text('주문 처리 흐름'), findsNothing);
+    expect(find.text('DB 대리점'), findsOneWidget);
+    await tester.tap(find.text('상세보기').first);
+    await tester.pumpAndSettle();
+    expect(find.text('주문 상세'), findsOneWidget);
+    expect(find.text('고객 정보'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.text('목록으로 돌아가기'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), '없는 상품');
+    await tester.pumpAndSettle();
+    expect(find.text('DB 상품'), findsNothing);
+    for (final title in ['전체 재고', '품의 관리', '발주 · 수주', '판매 현황', '기준 정보']) {
+      await tester.tap(find.text(title).first);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull, reason: title);
+    }
+    await tester.tap(find.text('전체 재고').first);
+    await tester.pumpAndSettle();
+    expect(find.text('대리점별 재고'), findsNothing);
+    expect(find.text('재고 변동 이력'), findsNothing);
+    await tester.pumpAndSettle();
+    expect(find.text(hqMissing), findsWidgets);
+    expect(find.text('DB 대리점'), findsNothing);
+    for (final size in [
+      const Size(1280, 800),
+      const Size(800, 1280),
+      const Size(390, 844),
+    ]) {
+      tester.view.physicalSize = size;
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull, reason: '$size');
+      if (size.width == 390) {
+        for (final name in [
+          '대시보드',
+          '주문 · 배송',
+          '품의 관리',
+          '발주 · 수주',
+          '판매 현황',
+          '기준 정보',
+        ]) {
+          await tester.ensureVisible(find.byIcon(Icons.menu));
+          await tester.tap(find.byIcon(Icons.menu));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text(name).first);
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull, reason: 'phone $name');
+        }
+      }
+    }
+  });
+  testWidgets('Proposal saves actual title and reason through CRUD', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1600, 1200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    var saved = false;
+    final repo = HqRepository(
+      client: MockClient((request) async {
+        if (request.method == 'POST') {
+          expect(request.url.path, '/approval/submit');
+          final payload = jsonDecode(request.body) as Map;
+          expect(payload['approval_name'], '새 품의');
+          expect(payload['approval_content'], startsWith('재고 확보\n'));
+          expect(payload['approval_content'], contains('DB 상품 (제품코드: s1)'));
+          expect(payload['approval_content'], contains('품의 유형: 재고 보충'));
+          expect(payload['approval_content'], contains('요청일:'));
+          expect(payload['employee_employee_id'], 'e1');
+          expect(payload['requested_amount'], '120000');
+          saved = true;
+          return http.Response('{"result":"CREATE OK"}', 200);
+        }
+        return response(records());
+      }),
+    );
+    addTearDown(repo.close);
+    await tester.pumpWidget(MaterialApp(home: HqConsole(repository: repo)));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('품의 관리').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, '품의서 작성'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).at(0), '새 품의');
+    await tester.enterText(find.byType(TextField).at(1), '120000');
+    await tester.enterText(find.byType(TextField).at(2), '재고 확보');
+    await tester.tap(find.byType(DropdownButtonFormField<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('DB 직원 (e1)').last);
+    await tester.pumpAndSettle();
+    expect(find.text('품의 유형'), findsNothing);
+    expect(find.text('요청 부서'), findsNothing);
+    expect(find.text('작성자'), findsNothing);
+    expect(find.text('요청일'), findsNothing);
+    expect(find.text('4. 예상 발주 금액'), findsNothing);
+    expect(find.text('5. 결재 라인'), findsNothing);
+    expect(find.text('6. 첨부 파일'), findsNothing);
+    await tester.ensureVisible(find.byType(Checkbox).first);
+    await tester.tap(find.byType(Checkbox).first);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('품의 저장'));
+    await tester.tap(find.text('품의 저장'));
+    await tester.pumpAndSettle();
+    expect(saved, isTrue);
+    expect(tester.takeException(), isNull);
+  });
   testWidgets('로그인 화면을 표시한다', (WidgetTester tester) async {
     await tester.pumpWidget(const MaterialApp(home: Login()));
 
