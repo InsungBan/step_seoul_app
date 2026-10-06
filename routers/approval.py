@@ -1,8 +1,24 @@
 from fastapi import APIRouter, Form
+from pydantic import BaseModel, Field
+from decimal import Decimal
+from services.approval_service import submit_approval
 
 from services.approval_service import create_approval, read_approval, update_approval, delete_approval
 
 router = APIRouter(prefix="/approval", tags=["approval"])
+
+
+class ProposalSubmission(BaseModel):
+    approval_name: str = Field(min_length=1, max_length=45, pattern=r'\S')
+    approval_content: str = Field(min_length=1, pattern=r'\S')
+    employee_employee_id: str = Field(min_length=1, max_length=20, pattern=r'\S')
+    requested_amount: Decimal = Field(ge=0, max_digits=18, decimal_places=2)
+
+
+@router.post('/submit')
+def submit(payload: ProposalSubmission):
+    return submit_approval(payload.approval_name.strip(), payload.approval_content.strip(),
+                           payload.employee_employee_id, payload.requested_amount)
 
 
 @router.post("/upload")
