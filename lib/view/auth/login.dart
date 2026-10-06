@@ -63,7 +63,10 @@ class _LoginState extends State<Login> {
           Get.offAllNamed(AppRoutes.employeeWorkHome);
           return;
         case _LoginDestination.executive:
-          Get.offAllNamed(AppRoutes.executiveDashboard);
+          Get.offAllNamed(
+            AppRoutes.executiveDashboard,
+            arguments: _idController.text.trim(),
+          );
           return;
       }
     } on _LoginException catch (error) {
@@ -665,6 +668,51 @@ class _LoginRepository {
     if (response.statusCode == 401) {
       throw const _LoginException('Invalid ID or password.');
     }
+
+    // 3. 직급(position) 및 부서(department)를 바탕으로 Destination 구분
+    final position = (employee['employee_position'] ?? '').toString().trim();
+    final department = (employee['employee_department'] ?? '')
+        .toString()
+        .trim();
+
+    return _determineDestination(position: position, department: department);
+  }
+
+  /// 직급과 부서를 기반으로 임원 / 대리점 직원 구분을 정밀하게 수행합니다.
+  _LoginDestination _determineDestination({
+    required String position,
+    required String department,
+  }) {
+    // 1) 임원 직급 목록
+    const executivePositions = {
+      '임원',
+      '이사',
+      '상무',
+      '전무',
+      '부사장',
+      '사장',
+      '대표',
+      'CEO',
+      'CFO',
+      'CTO',
+    };
+
+    // 직급 자체가 임원에 해당하거나 (예: "임원", "이사")
+    if (executivePositions.contains(position)) {
+      return _LoginDestination.executive;
+    }
+
+    // 부서가 '본사'이고 특정 고위 직급인 경우 추가 처리 예시
+    if (department == '본사' && position == '임원') {
+      return _LoginDestination.executive;
+    }
+
+    // 2) 그 외 (대리점직원, 사원, 대리, 팀장, 부장 등) -> 일반 직원 페이지로 이동
+    return _LoginDestination.employee;
+  }
+
+  List<Map<String, dynamic>> _records(http.Response response) {
+
     if (response.statusCode != 200) {
       throw const _LoginException('Could not sign in.');
     }

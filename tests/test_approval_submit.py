@@ -25,6 +25,9 @@ class ApprovalSubmissionTests(unittest.TestCase):
         self.assertLessEqual(len(response.json()['approval_id']), 20)
         calls = self.cursor.execute.call_args_list
         self.assertIn('requested_amount', calls[1].args[0])
+        self.assertIn('approval_date', calls[1].args[0])
+        self.assertEqual(calls[1].args[1][-1], response.json()['approval_date'])
+        self.assertEqual(calls[1].args[1][-1], calls[2].args[1][3])
         self.assertIn('INSERT INTO approval_process', calls[2].args[0])
         self.assertEqual(calls[2].args[1][-3:], ('대기', '대기', '결재대기'))
         self.conn.commit.assert_called_once()

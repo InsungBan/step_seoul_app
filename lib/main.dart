@@ -113,7 +113,7 @@ class MyApp extends StatelessWidget {
         GetPage(name: AppRoutes.employeeWorkHome, page: () => const WorkHome()),
         GetPage(
           name: AppRoutes.executiveDashboard,
-          page: () => const HqConsole(),
+          page: () => HqConsole(currentEmployeeId: Get.arguments as String?),
         ),
       ],
     );
