@@ -18,6 +18,7 @@ class SessionService {
   static const _table = 'app_session';
   static const _branchTable = 'selected_branch';
   Database? _database;
+  AppSession? _memorySession;
 
   Future<Database> get _db async {
     if (_database != null) return _database!;
@@ -37,6 +38,7 @@ class SessionService {
   }
 
   Future<AppSession?> readSession() async {
+    if (_memorySession != null) return _memorySession;
     final rows = await (await _db).query(
       _table,
       where: 'id = ?',
@@ -50,7 +52,11 @@ class SessionService {
       await clearSession();
       return null;
     }
-    return AppSession(userId: rows.first['user_id']! as String, role: role);
+    _memorySession = AppSession(
+      userId: rows.first['user_id']! as String,
+      role: role,
+    );
+    return _memorySession;
   }
 
   Future<void> _ensureBranchTable() async {
@@ -87,7 +93,13 @@ class SessionService {
   Future<void> saveSession({
     required String userId,
     required UserRole role,
+    bool persist = true,
   }) async {
+    _memorySession = AppSession(userId: userId, role: role);
+    if (!persist) {
+      await (await _db).delete(_table, where: 'id = ?', whereArgs: [1]);
+      return;
+    }
     await (await _db).insert(_table, {
       'id': 1,
       'user_id': userId,
@@ -96,6 +108,7 @@ class SessionService {
   }
 
   Future<void> clearSession() async {
+    _memorySession = null;
     final rows = await (await _db).query(
       _table,
       columns: ['user_id'],
