@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:step_seoul_app/services/work_activity_store.dart';
+import 'package:step_seoul_app/widgets/product_image.dart';
 
 const _navy = Color(0xFF14284B);
 const _blue = Color(0xFF3268E8);
@@ -118,21 +119,26 @@ class _InventoryStatusPageState extends State<InventoryStatusPage> {
               _Summary(
                 '정상 재고',
                 _normal.toString() + '개',
-                '전체의 68%',
+                _products.isEmpty
+                    ? '등록 데이터 없음'
+                    : (_normal * 100 / _products.length).round().toString() +
+                          '%',
                 Icons.check_circle_outline,
                 const Color(0xFF25A77A),
               ),
               _Summary(
                 '재고 부족',
                 _low.toString() + '개',
-                '전체의 12%',
+                _products.isEmpty
+                    ? '등록 데이터 없음'
+                    : (_low * 100 / _products.length).round().toString() + '%',
                 Icons.warning_amber_rounded,
                 const Color(0xFFF39A39),
               ),
               _Summary(
                 '오늘 판매량',
                 _database.todaySalesQuantity.toString() + '개',
-                '전일 대비 +18%',
+                '구매 기록 기준',
                 Icons.trending_up,
                 Color(0xFF9566D8),
               ),
@@ -145,7 +151,9 @@ class _InventoryStatusPageState extends State<InventoryStatusPage> {
             children: [
               Expanded(
                 child: Text(
-                  '총 342개의 상품이 등록되어 있습니다. · 검색 결과 ' +
+                  '총 ' +
+                      _products.length.toString() +
+                      '개의 상품이 등록되어 있습니다. · 검색 결과 ' +
                       _visible.length.toString() +
                       '개',
                   style: const TextStyle(color: _muted, fontSize: 11),
@@ -200,7 +208,13 @@ class _InventoryStatusPageState extends State<InventoryStatusPage> {
               ),
               _dropdown(
                 _category,
-                const ['모든 카테고리', '나이키', '아디다스', '뉴발란스'],
+                [
+                  '모든 카테고리',
+                  ..._products
+                      .map((product) => product.category)
+                      .where((value) => value.isNotEmpty)
+                      .toSet(),
+                ],
                 (v) => setState(() {
                   _category = v;
                   _page = 1;
@@ -241,7 +255,12 @@ class _InventoryStatusPageState extends State<InventoryStatusPage> {
                     .map(
                       (p) => DataRow(
                         cells: [
-                          DataCell(_Thumb(color: _productColor(p.category))),
+                          DataCell(
+                            _Thumb(
+                              color: _productColor(p.category),
+                              imageUrl: p.imageUrl,
+                            ),
+                          ),
                           DataCell(
                             SizedBox(
                               width: 185,
@@ -345,6 +364,12 @@ class _InventoryStatusPageState extends State<InventoryStatusPage> {
   );
 
   Future<void> _inbound() async {
+    if (_products.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('입고 처리할 상품 데이터가 없습니다.')));
+      return;
+    }
     final result = await showDialog<_Receipt>(
       context: context,
       builder: (_) => _InboundDialog(products: _products),
@@ -373,11 +398,11 @@ class _InboundDialog extends StatefulWidget {
 class _InboundDialogState extends State<_InboundDialog> {
   late MockProduct _selected = widget.products.first;
   final _search = TextEditingController(),
-      _quantity = TextEditingController(text: '50'),
+      _quantity = TextEditingController(),
       _price = TextEditingController(),
       _memo = TextEditingController();
-  String _date = '2025.09.28';
-  String _vendor = '본사';
+  String _date = _formatDate(DateTime.now());
+  String _vendor = '';
   int _photos = 0;
   @override
   void dispose() {
@@ -482,21 +507,13 @@ class _InboundDialogState extends State<_InboundDialog> {
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: DropdownButtonFormField<String>(
+                        child: TextFormField(
                           initialValue: _vendor,
                           decoration: const InputDecoration(
                             labelText: '입고처 (선택)',
                             border: OutlineInputBorder(),
                           ),
-                          items: const ['본사', '스탭택배', '기타 업체']
-                              .map(
-                                (v) =>
-                                    DropdownMenuItem(value: v, child: Text(v)),
-                              )
-                              .toList(),
-                          onChanged: (v) {
-                            if (v != null) setState(() => _vendor = v);
-                          },
+                          onChanged: (value) => _vendor = value,
                         ),
                       ),
                     ],
@@ -593,7 +610,7 @@ class _InboundDialogState extends State<_InboundDialog> {
     keyboardType: number ? TextInputType.number : TextInputType.text,
     decoration: InputDecoration(
       labelText: label,
-      hintText: label.contains('단가') ? '129,000' : null,
+      hintText: null,
       suffixText: suffix,
       border: const OutlineInputBorder(),
     ),
@@ -607,7 +624,10 @@ class _InboundDialogState extends State<_InboundDialog> {
     ),
     child: Row(
       children: [
-        _Thumb(color: _productColor(_selected.category)),
+        _Thumb(
+          color: _productColor(_selected.category),
+          imageUrl: _selected.imageUrl,
+        ),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
@@ -630,7 +650,13 @@ class _InboundDialogState extends State<_InboundDialog> {
                 style: const TextStyle(fontSize: 11),
               ),
               Text(
-                '최근 입고일 2025.09.20 · 최근 판매량 ' + _selected.sold.toString() + '개',
+                '최근 입고일 ' +
+                    (_selected.lastInbound == null
+                        ? '-'
+                        : _formatDate(_selected.lastInbound!)) +
+                    ' · 최근 판매량 ' +
+                    _selected.sold.toString() +
+                    '개',
                 style: const TextStyle(color: _muted, fontSize: 10),
               ),
             ],
@@ -744,17 +770,15 @@ class _Summary extends StatelessWidget {
 }
 
 class _Thumb extends StatelessWidget {
-  const _Thumb({required this.color});
+  const _Thumb({required this.color, required this.imageUrl});
   final Color color;
+  final String imageUrl;
   @override
-  Widget build(BuildContext context) => Container(
+  Widget build(BuildContext context) => ProductImage(
+    imageUrl: imageUrl,
     width: 48,
     height: 48,
-    decoration: BoxDecoration(
-      color: color,
-      borderRadius: BorderRadius.circular(8),
-    ),
-    child: const Icon(Icons.directions_run, color: _navy, size: 29),
+    backgroundColor: color,
   );
 }
 
@@ -787,3 +811,10 @@ Color _productColor(String category) => category == '나이키'
     : category == '아디다스'
     ? const Color(0xFFE9F0EA)
     : const Color(0xFFF3ECE7);
+
+String _formatDate(DateTime date) =>
+    date.year.toString() +
+    '.' +
+    date.month.toString().padLeft(2, '0') +
+    '.' +
+    date.day.toString().padLeft(2, '0');

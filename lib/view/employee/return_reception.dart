@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:step_seoul_app/services/work_activity_store.dart';
+import 'package:step_seoul_app/widgets/product_image.dart';
 
 const _navy = Color(0xFF14284B),
     _blue = Color(0xFF3268E8),
@@ -74,109 +75,107 @@ class _ReturnReceptionPageState extends State<ReturnReceptionPage> {
     final wide = MediaQuery.sizeOf(context).width >= 1150;
     return Stack(
       children: [
-        Padding(
-          padding: EdgeInsets.fromLTRB(
-            wide ? 25 : 14,
-            wide ? 25 : 14,
-            wide ? 25 : 14,
-            wide ? 25 : 14,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '반품 접수',
-                          style: TextStyle(
-                            color: _navy,
-                            fontSize: 26,
-                            fontWeight: FontWeight.w900,
+        SingleChildScrollView(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              wide ? 25 : 14,
+              wide ? 25 : 14,
+              wide ? 25 : 14,
+              wide ? 25 : 14,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '반품 접수',
+                            style: TextStyle(
+                              color: _navy,
+                              fontSize: 26,
+                              fontWeight: FontWeight.w900,
+                            ),
                           ),
-                        ),
-                        SizedBox(height: 5),
-                        Text(
-                          '반품 요청을 검수하고 처리 현황을 관리하세요.',
-                          style: TextStyle(color: _muted, fontSize: 12),
-                        ),
-                      ],
+                          SizedBox(height: 5),
+                          Text(
+                            '반품 요청을 검수하고 처리 현황을 관리하세요.',
+                            style: TextStyle(color: _muted, fontSize: 12),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  TextButton.icon(
-                    onPressed: () => setState(() => detailOpen = false),
-                    icon: const Icon(Icons.refresh, size: 16),
-                    label: const Text('새로고침'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 15),
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  _Summary(
-                    '반품 요청',
-                    _returnCount.toString(),
-                    '오늘 접수 ' +
-                        _database.returns
-                            .where(
-                              (r) =>
-                                  r.requestedAt.year == DateTime.now().year &&
-                                  r.requestedAt.month == DateTime.now().month &&
-                                  r.requestedAt.day == DateTime.now().day,
-                            )
-                            .length
-                            .toString() +
-                        '건 증가',
-                    Icons.assignment_return,
-                    _blue,
-                  ),
-                  _Summary(
-                    '검수 대기',
-                    _inspectionCount.toString(),
-                    '전체의 ' +
-                        (_returnCount == 0
-                                ? 0
-                                : (_inspectionCount * 100 / _returnCount)
-                                      .round())
-                            .toString() +
-                        '%',
-                    Icons.pending_actions,
-                    Color(0xFFF39A39),
-                  ),
-                  _Summary(
-                    '승인 완료',
-                    _approvedCount.toString(),
-                    '오늘 ' +
-                        _database.logs
-                            .where((l) => l.type == '반품 승인')
-                            .length
-                            .toString() +
-                        '건 승인',
-                    Icons.verified,
-                    Color(0xFF25A77A),
-                  ),
-                  _Summary(
-                    '회수 진행 중',
-                    _recallCount.toString(),
-                    '본사 회수 대기',
-                    Icons.local_shipping,
-                    Color(0xFF9566D8),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 15),
-              Expanded(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [Expanded(child: _table())],
+                    TextButton.icon(
+                      onPressed: () => setState(() => detailOpen = false),
+                      icon: const Icon(Icons.refresh, size: 16),
+                      label: const Text('새로고침'),
+                    ),
+                  ],
                 ),
-              ),
-            ],
+                const SizedBox(height: 15),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    _Summary(
+                      '반품 요청',
+                      _returnCount.toString(),
+                      '오늘 접수 ' +
+                          _database.returns
+                              .where(
+                                (r) =>
+                                    r.requestedAt.year == DateTime.now().year &&
+                                    r.requestedAt.month ==
+                                        DateTime.now().month &&
+                                    r.requestedAt.day == DateTime.now().day,
+                              )
+                              .length
+                              .toString() +
+                          '건 증가',
+                      Icons.assignment_return,
+                      _blue,
+                    ),
+                    _Summary(
+                      '검수 대기',
+                      _inspectionCount.toString(),
+                      '전체의 ' +
+                          (_returnCount == 0
+                                  ? 0
+                                  : (_inspectionCount * 100 / _returnCount)
+                                        .round())
+                              .toString() +
+                          '%',
+                      Icons.pending_actions,
+                      Color(0xFFF39A39),
+                    ),
+                    _Summary(
+                      '승인 완료',
+                      _approvedCount.toString(),
+                      '오늘 ' +
+                          _database.logs
+                              .where((l) => l.type == '반품 승인')
+                              .length
+                              .toString() +
+                          '건 승인',
+                      Icons.verified,
+                      Color(0xFF25A77A),
+                    ),
+                    _Summary(
+                      '회수 진행 중',
+                      _recallCount.toString(),
+                      '본사 회수 대기',
+                      Icons.local_shipping,
+                      Color(0xFF9566D8),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 15),
+                _table(),
+              ],
+            ),
           ),
         ),
         if (wide && detailOpen && selected != null)
@@ -238,108 +237,103 @@ class _ReturnReceptionPageState extends State<ReturnReceptionPage> {
           ),
         ),
         const Divider(height: 1),
-        Expanded(
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: DataTable(
-              columnSpacing: 17,
-              headingTextStyle: const TextStyle(
-                color: _muted,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-              ),
-              columns: const [
-                DataColumn(label: Text('고객 이름/연락처')),
-                DataColumn(label: Text('주문번호/주문일')),
-                DataColumn(label: Text('상품 정보')),
-                DataColumn(label: Text('반품 사유')),
-                DataColumn(label: Text('진행 상태')),
-                DataColumn(label: Text('접수일')),
-                DataColumn(label: Text('작업')),
-              ],
-              rows: visible
-                  .map(
-                    (r) => DataRow(
-                      cells: [
-                        DataCell(
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                r.customer,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 12,
-                                ),
-                              ),
-                              Text(
-                                r.phone,
-                                style: const TextStyle(
-                                  color: _muted,
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        DataCell(
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                r.code,
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              Text(
-                                r.orderDate,
-                                style: const TextStyle(
-                                  color: _muted,
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        DataCell(
-                          Text(
-                            r.product + ' · ' + r.option,
-                            style: const TextStyle(fontSize: 9),
-                          ),
-                        ),
-                        DataCell(
-                          SizedBox(
-                            width: 110,
-                            child: Text(
-                              r.reason,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontSize: 9),
-                            ),
-                          ),
-                        ),
-                        DataCell(_Status(r.label)),
-                        DataCell(
-                          Text(
-                            r.submitted,
-                            style: const TextStyle(fontSize: 9),
-                          ),
-                        ),
-                        DataCell(
-                          TextButton(
-                            onPressed: () => _showDetail(r),
-                            child: const Text('상세보기'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                  .toList(),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: DataTable(
+            columnSpacing: 17,
+            headingTextStyle: const TextStyle(
+              color: _muted,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
             ),
+            columns: const [
+              DataColumn(label: Text('고객 이름/연락처')),
+              DataColumn(label: Text('주문번호/주문일')),
+              DataColumn(label: Text('상품 정보')),
+              DataColumn(label: Text('반품 사유')),
+              DataColumn(label: Text('진행 상태')),
+              DataColumn(label: Text('접수일')),
+              DataColumn(label: Text('작업')),
+            ],
+            rows: visible
+                .map(
+                  (r) => DataRow(
+                    cells: [
+                      DataCell(
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              r.customer,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 12,
+                              ),
+                            ),
+                            Text(
+                              r.phone,
+                              style: const TextStyle(
+                                color: _muted,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      DataCell(
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              r.code,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            Text(
+                              r.orderDate,
+                              style: const TextStyle(
+                                color: _muted,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      DataCell(
+                        Text(
+                          r.product + ' · ' + r.option,
+                          style: const TextStyle(fontSize: 9),
+                        ),
+                      ),
+                      DataCell(
+                        SizedBox(
+                          width: 110,
+                          child: Text(
+                            r.reason,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 9),
+                          ),
+                        ),
+                      ),
+                      DataCell(_Status(r.label)),
+                      DataCell(
+                        Text(r.submitted, style: const TextStyle(fontSize: 9)),
+                      ),
+                      DataCell(
+                        TextButton(
+                          onPressed: () => _showDetail(r),
+                          child: const Text('상세보기'),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+                .toList(),
           ),
         ),
       ],
@@ -527,15 +521,7 @@ class _ReturnReceptionPageState extends State<ReturnReceptionPage> {
     ),
     child: Row(
       children: [
-        Container(
-          width: 54,
-          height: 54,
-          decoration: BoxDecoration(
-            color: const Color(0xFFE4EAF3),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: const Icon(Icons.directions_run, color: _navy, size: 32),
-        ),
+        ProductImage(imageUrl: r.imageUrl, width: 54, height: 54),
         const SizedBox(width: 8),
         Expanded(
           child: Column(
@@ -593,7 +579,7 @@ class _ReturnReceptionPageState extends State<ReturnReceptionPage> {
         return _Timeline(
           title: e.value,
           detail: done
-              ? (e.key == 0 ? r.submitted : r.approvedAt ?? '처리 완료')
+              ? (e.key == 0 ? r.submitted : r.approvedAt ?? '처리 일시 정보 없음')
               : active
               ? '담당자가 확인 중입니다.'
               : '처리 대기 중',
@@ -660,33 +646,43 @@ class _ReturnRequest {
       customer = _order(database, value.orderId).customer,
       phone = _order(database, value.orderId).phone,
       product = database.productForOrder(_order(database, value.orderId)).name,
+      imageUrl = database
+          .productForOrder(_order(database, value.orderId))
+          .imageUrl,
       option = database.productForOrder(_order(database, value.orderId)).option,
       qty = _order(database, value.orderId).quantity,
       reason = value.reason,
       submitted = _date(value.requestedAt),
       orderDate = _date(_order(database, value.orderId).orderedAt),
-      invoice = 'TX-' + value.id.hashCode.toString().padLeft(8, '0'),
+      invoice = '-',
       address = _order(database, value.orderId).address,
-      channel = 'STEP 온라인',
+      channel = '-',
       detailReason = value.detailReason,
       requestNote = value.note,
       status = value.status,
       recallRequested = value.recallRequested,
-      approvedAt =
-          value.status == ReturnStatus.approved || value.recallRequested
-          ? _date(value.requestedAt)
-          : null;
+      approvedAt = null;
 
   static MockOrder _order(MockDatabase database, String code) =>
-      database.orders.firstWhere(
-        (order) => order.orderCode == code,
-        orElse: () => database.orders.first,
+      database.orders.where((order) => order.orderCode == code).firstOrNull ??
+      MockOrder(
+        id: '',
+        orderCode: code,
+        customer: '-',
+        phone: '',
+        productId: '',
+        orderedAt: DateTime.fromMillisecondsSinceEpoch(0),
+        expectedAt: DateTime.fromMillisecondsSinceEpoch(0),
+        status: DeliveryStatus.unknown,
+        quantity: 0,
+        address: '',
       );
   final String id,
       code,
       customer,
       phone,
       product,
+      imageUrl,
       option,
       reason,
       submitted,
@@ -961,7 +957,12 @@ class _ApproveDialogState extends State<_ApproveDialog> {
                 border: OutlineInputBorder(),
               ),
             ),
-            const _Info('처리 담당자', '김직원 (안산 상록점)'),
+            _Info(
+              '처리 담당자',
+              MockDatabase.instance.activeEmployeeName.isEmpty
+                  ? '-'
+                  : MockDatabase.instance.activeEmployeeName,
+            ),
           ],
         ),
       ),
