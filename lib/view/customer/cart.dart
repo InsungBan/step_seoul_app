@@ -1,13 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:step_seoul_app/routes/app_routes.dart';
+import 'package:step_seoul_app/routes/route_arguments.dart';
 import 'package:step_seoul_app/services/customer_cart_service.dart';
+import 'package:step_seoul_app/services/customer_home_service.dart';
+import 'package:step_seoul_app/services/product_variant_service.dart';
 import 'package:step_seoul_app/view/customer/checkout_payment.dart';
+import 'package:step_seoul_app/view/customer/shoe_image.dart';
 
 const _blue = Color(0xFF2F67E8);
 const _ink = Color(0xFF17233C);
 const _muted = Color(0xFF7486A0);
+const _line = Color(0xFFDCE5F1);
 
 class CartPage extends StatefulWidget {
-  const CartPage({super.key});
+  const CartPage({super.key, this.service});
+
+  final CustomerCartService? service;
 
   @override
   State<CartPage> createState() => _CartPageState();
@@ -21,23 +30,22 @@ class CartNavigationButton extends StatelessWidget {
     radius: 21,
     backgroundColor: Colors.white,
     child: IconButton(
-      tooltip: '\uC7A5\uBC14\uAD6C\uB2C8',
+      tooltip: '장바구니',
       icon: const Icon(Icons.shopping_bag_outlined, color: _muted),
-      onPressed: () => Navigator.of(
-        context,
-      ).push(MaterialPageRoute(builder: (_) => const CartPage())),
+      onPressed: () => Get.toNamed(AppRoutes.cart),
     ),
   );
 }
 
 class _CartPageState extends State<CartPage> {
-  final _service = CustomerCartService();
+  late final CustomerCartService _service;
   late Future<CustomerCartData> _future;
   bool _busy = false;
 
   @override
   void initState() {
     super.initState();
+    _service = widget.service ?? CustomerCartService();
     _reload();
   }
 
@@ -46,192 +54,238 @@ class _CartPageState extends State<CartPage> {
   Future<void> _mutate(
     Future<void> Function(CustomerCartData data) action,
   ) async {
-    final data = await _future;
+    if (_busy) return;
     setState(() => _busy = true);
     try {
+      final data = await _future;
       await action(data);
       if (mounted) setState(_reload);
     } on CustomerCartException catch (error) {
       _message(error.message);
     } catch (_) {
-      _message('Unable to connect to the server.');
+      _message('서버에 연결할 수 없습니다.');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
-  void _message(String message) => ScaffoldMessenger.of(
-    context,
-  ).showSnackBar(SnackBar(content: Text(message)));
+  Future<void> _clearCart(CustomerCartData data) async {
+    await _mutate((cart) async {
+      for (final item in cart.items) {
+        await _service.removeAll(cart, item);
+      }
+    });
+  }
+
+  Future<void> _chooseStore(CustomerCartData data) async {
+    if (data.stores.isEmpty) {
+      _message('선택할 수 있는 대리점이 없습니다.');
+      return;
+    }
+    final selected = await Get.toNamed(
+      AppRoutes.branchList,
+      arguments: BranchListArguments(
+        stores: data.stores,
+        selectedStoreId: data.selectedStore?.id,
+      ),
+    );
+    if (selected is CustomerStore && mounted) setState(_reload);
+  }
+
+  void _checkout(CustomerCartData data) {
+    if (data.selectedStore == null) {
+      _message('수령 대리점을 먼저 선택해 주세요.');
+      return;
+    }
+    Get.toNamed(
+      AppRoutes.checkoutPayment,
+      arguments: CheckoutArguments(
+        items: data.items
+            .map(
+              (item) =>
+                  CheckoutLineItem(shoe: item.shoe, quantity: item.quantity),
+            )
+            .toList(),
+        store: data.selectedStore,
+        clearCart: true,
+      ),
+    );
+  }
+
+  void _message(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => FutureBuilder<CustomerCartData>(
+    future: _future,
+    builder: (context, snapshot) {
+      final data = snapshot.data;
+      final hasItems = data?.items.isNotEmpty == true;
+      return Scaffold(
+        backgroundColor: const Color(0xFFF7F9FD),
+        appBar: _CartAppBar(
+          canClear: hasItems && !_busy,
+          onClear: data == null ? null : () => _clearCart(data),
+        ),
+        body: _buildBody(snapshot),
+        bottomNavigationBar: hasItems
+            ? _CheckoutBar(
+                total: data!.total,
+                count: _itemCount(data),
+                busy: _busy,
+                onOrder: () => _checkout(data),
+              )
+            : null,
+      );
+    },
+  );
+
+  Widget _buildBody(AsyncSnapshot<CustomerCartData> snapshot) {
+    if (snapshot.connectionState != ConnectionState.done) {
+      return const Center(child: CircularProgressIndicator(color: _blue));
+    }
+    if (snapshot.hasError) {
+      return _CartError(onRetry: () => setState(_reload));
+    }
+    final data = snapshot.requireData;
+    if (data.items.isEmpty) return const _EmptyCart();
+    return _CartContent(
+      data: data,
+      busy: _busy,
+      onChooseStore: () => _chooseStore(data),
+      onAdd: (item) => _mutate((_) => _service.addShoe(item.shoe)),
+      onRemoveOne: (item) => _mutate((cart) => _service.removeOne(cart, item)),
+      onDelete: (item) => _mutate((cart) => _service.removeAll(cart, item)),
+    );
+  }
+}
+
+class _CartAppBar extends StatelessWidget implements PreferredSizeWidget {
+  const _CartAppBar({required this.canClear, required this.onClear});
+
+  final bool canClear;
+  final VoidCallback? onClear;
+
+  @override
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
+
+  @override
+  Widget build(BuildContext context) => AppBar(
     backgroundColor: const Color(0xFFF7F9FD),
-    appBar: AppBar(
-      backgroundColor: const Color(0xFFF7F9FD),
-      elevation: 0,
-      centerTitle: true,
-      title: const Text(
-        '\uC7A5\uBC14\uAD6C\uB2C8',
-        style: TextStyle(
-          color: _ink,
-          fontSize: 21,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
-      leading: Padding(
-        padding: const EdgeInsets.all(8),
-        child: IconButton(
-          onPressed: Navigator.of(context).pop,
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _ink),
-          style: IconButton.styleFrom(
-            backgroundColor: Colors.white,
-            side: const BorderSide(color: Color(0xFFDCE5F1)),
-          ),
-        ),
-      ),
-      actions: const [
-        Padding(
-          padding: EdgeInsets.only(right: 20),
-          child: Center(
-            child: Text('\uD3B8\uC9D1', style: TextStyle(color: _muted)),
-          ),
-        ),
-      ],
+    elevation: 0,
+    centerTitle: true,
+    title: const Text(
+      '장바구니',
+      style: TextStyle(color: _ink, fontSize: 21, fontWeight: FontWeight.w800),
     ),
-    body: Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 560),
-        child: FutureBuilder<CustomerCartData>(
-          future: _future,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState != ConnectionState.done)
-              return const Center(
-                child: CircularProgressIndicator(color: _blue),
-              );
-            if (snapshot.hasError)
-              return _CartError(onRetry: () => setState(_reload));
-            final data = snapshot.requireData;
-            if (data.items.isEmpty) return const _EmptyCart();
-            final store = data.selectedStore;
-            return ListView(
-              padding: const EdgeInsets.fromLTRB(20, 7, 20, 24),
-              children: [
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.check_circle_rounded,
-                      color: _blue,
-                      size: 28,
-                    ),
-                    const SizedBox(width: 10),
-                    Text(
-                      '\uC804\uCCB4 \uC120\uD0DD ' +
-                          data.items.length.toString(),
-                      style: const TextStyle(
-                        color: _ink,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const Spacer(),
-                    TextButton(
-                      onPressed: _busy
-                          ? null
-                          : () => _mutate((cart) async {
-                              for (final item in cart.items) {
-                                await _service.removeAll(cart, item);
-                              }
-                            }),
-                      child: const Text(
-                        '\uC120\uD0DD \uC0AD\uC81C',
-                        style: TextStyle(color: _muted),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                ...data.items.map(
-                  (item) => _CartItemCard(
-                    item: item,
-                    busy: _busy,
-                    onAdd: () => _mutate((cart) => _service.addShoe(item.shoe)),
-                    onRemoveOne: item.quantity > 1
-                        ? () =>
-                              _mutate((cart) => _service.removeOne(cart, item))
-                        : null,
-                    onDelete: () =>
-                        _mutate((cart) => _service.removeAll(cart, item)),
-                  ),
-                ),
-                const SizedBox(height: 21),
-                const Text(
-                  '\uC218\uB839 \uB300\uB9AC\uC810',
-                  style: TextStyle(
-                    color: _ink,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                _StoreCard(
-                  name: store?.name ?? '\uB300\uB9AC\uC810 \uBC30\uC815 \uC911',
-                  detail: store == null
-                      ? '\uC218\uB839 \uB300\uB9AC\uC810\uC744 \uC120\uD0DD\uD574 \uC8FC\uC138\uC694.'
-                      : store.district + '  ' + store.phone,
-                ),
-                const SizedBox(height: 26),
-                const Text(
-                  '\uACB0\uC81C \uC608\uC815 \uAE08\uC561',
-                  style: TextStyle(
-                    color: _ink,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                _PaymentSummary(total: data.total),
-                const SizedBox(height: 20),
-                const _InfoNotice(),
-              ],
-            );
-          },
+    leading: Padding(
+      padding: const EdgeInsets.all(8),
+      child: IconButton(
+        onPressed: () => Get.back(),
+        icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _ink),
+        style: IconButton.styleFrom(
+          backgroundColor: Colors.white,
+          side: const BorderSide(color: _line),
         ),
       ),
     ),
-    bottomNavigationBar: FutureBuilder<CustomerCartData>(
-      future: _future,
-      builder: (context, snapshot) {
-        if (!snapshot.hasData || snapshot.requireData.items.isEmpty) {
-          return const SizedBox.shrink();
-        }
-        final data = snapshot.requireData;
-        return Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 560),
-            child: _CheckoutBar(
-              total: data.total,
-              count: data.items.length,
-              onOrder: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => CheckoutPaymentPage(
-                    items: data.items
-                        .map(
-                          (item) => CheckoutLineItem(
-                            shoe: item.shoe,
-                            quantity: item.quantity,
-                          ),
-                        )
-                        .toList(),
-                    store: data.selectedStore,
-                    clearCart: true,
-                  ),
-                ),
-              ),
+    actions: [
+      TextButton(
+        onPressed: canClear ? onClear : null,
+        child: const Text('전체 삭제'),
+      ),
+      const SizedBox(width: 8),
+    ],
+  );
+}
+
+class _CartContent extends StatelessWidget {
+  const _CartContent({
+    required this.data,
+    required this.busy,
+    required this.onChooseStore,
+    required this.onAdd,
+    required this.onRemoveOne,
+    required this.onDelete,
+  });
+
+  final CustomerCartData data;
+  final bool busy;
+  final VoidCallback onChooseStore;
+  final ValueChanged<CustomerCartItem> onAdd;
+  final ValueChanged<CustomerCartItem> onRemoveOne;
+  final ValueChanged<CustomerCartItem> onDelete;
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 600),
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 28),
+        children: [
+          _CartSummaryHeader(
+            kinds: data.items.length,
+            count: _itemCount(data),
+            busy: busy,
+          ),
+          const SizedBox(height: 12),
+          for (final item in data.items)
+            _CartItemCard(
+              item: item,
+              busy: busy,
+              onAdd: item.quantity < item.shoe.stock ? () => onAdd(item) : null,
+              onRemoveOne: item.quantity > 1 ? () => onRemoveOne(item) : null,
+              onDelete: () => onDelete(item),
             ),
-          ),
-        );
-      },
+          const SizedBox(height: 10),
+          const _SectionTitle('수령 대리점'),
+          const SizedBox(height: 10),
+          _StoreCard(store: data.selectedStore, onChange: onChooseStore),
+          const SizedBox(height: 24),
+          const _SectionTitle('결제 금액'),
+          const SizedBox(height: 10),
+          _PaymentSummary(total: data.total),
+          const SizedBox(height: 16),
+          const _InfoNotice(),
+        ],
+      ),
     ),
+  );
+}
+
+class _CartSummaryHeader extends StatelessWidget {
+  const _CartSummaryHeader({
+    required this.kinds,
+    required this.count,
+    required this.busy,
+  });
+
+  final int kinds;
+  final int count;
+  final bool busy;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      const Icon(Icons.shopping_bag_rounded, color: _blue, size: 24),
+      const SizedBox(width: 9),
+      Expanded(
+        child: Text(
+          '$kinds종 · 총 $count개',
+          style: const TextStyle(color: _ink, fontWeight: FontWeight.w700),
+        ),
+      ),
+      if (busy)
+        const SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(strokeWidth: 2, color: _blue),
+        ),
+    ],
   );
 }
 
@@ -243,228 +297,304 @@ class _CartItemCard extends StatelessWidget {
     required this.onRemoveOne,
     required this.onDelete,
   });
+
   final CustomerCartItem item;
   final bool busy;
-  final VoidCallback onAdd;
+  final VoidCallback? onAdd;
   final VoidCallback? onRemoveOne;
   final VoidCallback onDelete;
+
   @override
-  Widget build(BuildContext context) => Container(
-    margin: const EdgeInsets.only(bottom: 13),
-    padding: const EdgeInsets.all(17),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(23),
-      boxShadow: const [
-        BoxShadow(
-          color: Color(0x0A1F3C70),
-          blurRadius: 12,
-          offset: Offset(0, 5),
-        ),
-      ],
-    ),
-    child: Column(
-      children: [
-        Row(
-          children: [
-            const Icon(Icons.check_circle_rounded, color: _blue, size: 27),
-            const SizedBox(width: 9),
-            const Text(
-              'STEP SEOUL',
-              style: TextStyle(color: _ink, fontWeight: FontWeight.w700),
-            ),
-            const Spacer(),
-            IconButton(
-              onPressed: busy ? null : onDelete,
-              icon: const Icon(Icons.close_rounded, color: _muted),
+  Widget build(BuildContext context) {
+    final size = shoeVariantSize(item.shoe.id);
+    return AnimatedOpacity(
+      duration: const Duration(milliseconds: 150),
+      opacity: busy ? .65 : 1,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFE8EDF5)),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0A1F3C70),
+              blurRadius: 12,
+              offset: Offset(0, 5),
             ),
           ],
         ),
-        const Divider(color: Color(0xFFE6EDF6)),
-        const SizedBox(height: 10),
-        Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 112,
-              height: 112,
-              decoration: BoxDecoration(
-                color: const Color(0xFFD3E8FF),
-                borderRadius: BorderRadius.circular(17),
-              ),
-              child: const Padding(
-                padding: EdgeInsets.all(20),
-                child: _CartShoeArtwork(),
-              ),
-            ),
-            const SizedBox(width: 15),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    '\uC624\uB298 \uC218\uB839 \uAC00\uB2A5',
-                    style: TextStyle(
-                      color: Color(0xFF27A96E),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    item.shoe.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: _ink,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
-                  const SizedBox(height: 5),
-                  Text(
-                    item.shoe.name,
+                ),
+                IconButton(
+                  tooltip: '상품 삭제',
+                  visualDensity: VisualDensity.compact,
+                  onPressed: busy ? null : onDelete,
+                  icon: const Icon(Icons.close_rounded, color: _muted),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 96,
+                  height: 96,
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE6F0FF),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: ShoeImage(
+                    imageUrl: item.shoe.imageUrl,
+                    fit: BoxFit.contain,
+                    iconColor: _blue,
+                  ),
+                ),
+                const SizedBox(width: 13),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _AvailabilityBadge(stock: item.shoe.stock),
+                      const SizedBox(height: 7),
+                      Text(
+                        'ID · ${item.shoe.id}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: _muted, fontSize: 12),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        size == null ? item.shoe.category : '사이즈 $size',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: _muted, fontSize: 13),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _won(item.unitPrice),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: _ink,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 28, color: Color(0xFFE6EDF6)),
+            Row(
+              children: [
+                _QuantityControl(
+                  quantity: item.quantity,
+                  onMinus: busy ? null : onRemoveOne,
+                  onPlus: busy ? null : onAdd,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    _won(item.total),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.end,
                     style: const TextStyle(
                       color: _ink,
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'ID \u00B7 ' + item.shoe.id,
-                    style: const TextStyle(color: _muted),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _won(item.unitPrice),
-                    style: const TextStyle(
-                      color: _ink,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 7),
-                  OutlinedButton(
-                    onPressed: () {},
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(89, 35),
-                      padding: EdgeInsets.zero,
-                    ),
-                    child: const Text('\uC635\uC158 \uBCC0\uACBD'),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ],
         ),
-        const Divider(height: 28, color: Color(0xFFE6EDF6)),
-        Row(
-          children: [
-            const Text(
-              '\uC218\uB7C9',
-              style: TextStyle(color: _muted, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(width: 16),
-            _QuantityControl(
-              quantity: item.quantity,
-              enabled: !busy,
-              onMinus: onRemoveOne,
-              onPlus: onAdd,
-            ),
-            const Spacer(),
-            Text(
-              _won(item.total),
-              style: const TextStyle(
-                color: _ink,
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ],
+      ),
+    );
+  }
+}
+
+class _AvailabilityBadge extends StatelessWidget {
+  const _AvailabilityBadge({required this.stock});
+
+  final int stock;
+
+  @override
+  Widget build(BuildContext context) {
+    final available = stock > 0;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      decoration: BoxDecoration(
+        color: available ? const Color(0xFFE8F9F1) : const Color(0xFFFFECEF),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        available ? '재고 $stock개' : '품절',
+        style: TextStyle(
+          color: available ? const Color(0xFF168856) : const Color(0xFFDD4961),
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
         ),
-        const SizedBox(height: 12),
-        const Row(
-          children: [
-            Icon(Icons.circle, color: Color(0xFF25C979), size: 10),
-            SizedBox(width: 7),
-            Text(
-              '\uC120\uD0DD\uD55C \uB300\uB9AC\uC810 \uC7AC\uACE0\uAC00 \uD655\uBCF4\uB418\uC5B4 \uC788\uC2B5\uB2C8\uB2E4.',
-              style: TextStyle(color: _muted, fontSize: 11),
-            ),
-          ],
-        ),
-      ],
-    ),
-  );
+      ),
+    );
+  }
 }
 
 class _QuantityControl extends StatelessWidget {
   const _QuantityControl({
     required this.quantity,
-    required this.enabled,
     required this.onMinus,
     required this.onPlus,
   });
+
   final int quantity;
-  final bool enabled;
   final VoidCallback? onMinus;
-  final VoidCallback onPlus;
+  final VoidCallback? onPlus;
+
   @override
   Widget build(BuildContext context) => Container(
     decoration: BoxDecoration(
-      color: const Color(0xFFF9FBFF),
-      borderRadius: BorderRadius.circular(13),
-      border: Border.all(color: const Color(0xFFDCE5F1)),
+      color: const Color(0xFFF7F9FD),
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: _line),
     ),
     child: Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        IconButton(
-          onPressed: enabled ? onMinus : null,
-          icon: const Icon(Icons.remove_rounded, color: _muted),
+        _QuantityButton(
+          icon: Icons.remove_rounded,
+          onPressed: onMinus,
+          color: _muted,
         ),
-        Text(
-          quantity.toString(),
-          style: const TextStyle(color: _ink, fontWeight: FontWeight.w700),
+        SizedBox(
+          width: 34,
+          child: Text(
+            quantity.toString(),
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: _ink, fontWeight: FontWeight.w800),
+          ),
         ),
-        IconButton(
-          onPressed: enabled ? onPlus : null,
-          icon: const Icon(Icons.add_rounded, color: _blue),
+        _QuantityButton(
+          icon: Icons.add_rounded,
+          onPressed: onPlus,
+          color: _blue,
         ),
       ],
     ),
   );
 }
 
+class _QuantityButton extends StatelessWidget {
+  const _QuantityButton({
+    required this.icon,
+    required this.onPressed,
+    required this.color,
+  });
+
+  final IconData icon;
+  final VoidCallback? onPressed;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => IconButton(
+    constraints: const BoxConstraints.tightFor(width: 36, height: 36),
+    padding: EdgeInsets.zero,
+    visualDensity: VisualDensity.compact,
+    onPressed: onPressed,
+    icon: Icon(icon, color: onPressed == null ? _line : color, size: 20),
+  );
+}
+
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Text(
+    text,
+    style: const TextStyle(
+      color: _ink,
+      fontSize: 19,
+      fontWeight: FontWeight.w800,
+    ),
+  );
+}
+
 class _StoreCard extends StatelessWidget {
-  const _StoreCard({required this.name, required this.detail});
-  final String name;
-  final String detail;
+  const _StoreCard({required this.store, required this.onChange});
+
+  final CustomerStore? store;
+  final VoidCallback onChange;
+
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(16),
+    padding: const EdgeInsets.all(15),
     decoration: BoxDecoration(
       color: Colors.white,
       borderRadius: BorderRadius.circular(18),
-      border: Border.all(color: const Color(0xFFDCE5F1)),
+      border: Border.all(color: _line),
     ),
     child: Row(
       children: [
-        const Icon(Icons.location_on_outlined, color: _blue, size: 40),
+        Container(
+          width: 44,
+          height: 44,
+          decoration: const BoxDecoration(
+            color: Color(0xFFEAF3FF),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.storefront_rounded, color: _blue),
+        ),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                name,
+                store?.name ?? '수령 대리점을 선택해 주세요',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: _ink,
-                  fontSize: 17,
+                  fontSize: 16,
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              const SizedBox(height: 5),
-              Text(detail, style: const TextStyle(color: _muted, fontSize: 12)),
+              const SizedBox(height: 4),
+              Text(
+                store == null
+                    ? '결제 전에 수령할 대리점을 선택합니다.'
+                    : '${store!.district}  ${store!.phone}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: _muted, fontSize: 12),
+              ),
             ],
           ),
         ),
-        TextButton(
-          onPressed: () {},
-          child: const Text(
-            '\uBCC0\uACBD',
-            style: TextStyle(color: _blue, fontWeight: FontWeight.w700),
-          ),
-        ),
+        TextButton(onPressed: onChange, child: const Text('변경')),
       ],
     ),
   );
@@ -472,46 +602,30 @@ class _StoreCard extends StatelessWidget {
 
 class _PaymentSummary extends StatelessWidget {
   const _PaymentSummary({required this.total});
+
   final int total;
+
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(20),
+    padding: const EdgeInsets.all(18),
     decoration: BoxDecoration(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(21),
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: const Color(0xFFE8EDF5)),
     ),
     child: Column(
       children: [
-        _PriceRow(label: '\uC0C1\uD488 \uAE08\uC561', value: _won(total)),
-        const SizedBox(height: 14),
-        const _PriceRow(
-          label: '\uB300\uB9AC\uC810 \uC218\uB839',
-          value: '\uBB34\uB8CC',
+        _PriceRow(label: '상품 금액', value: _won(total)),
+        const SizedBox(height: 13),
+        const _PriceRow(label: '대리점 수령', value: '무료', accent: true),
+        const SizedBox(height: 13),
+        const _PriceRow(label: '할인 금액', value: '0원'),
+        const Divider(height: 28, color: _line),
+        _PriceRow(
+          label: '총 결제금액',
+          value: _won(total),
+          total: true,
           accent: true,
-        ),
-        const SizedBox(height: 14),
-        const _PriceRow(label: '\uD560\uC778 \uAE08\uC561', value: '0\uC6D0'),
-        const Divider(height: 28, color: Color(0xFFDCE5F1)),
-        Row(
-          children: [
-            const Text(
-              '\uCD1D \uACB0\uC81C\uAE08\uC561',
-              style: TextStyle(
-                color: _ink,
-                fontSize: 17,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const Spacer(),
-            Text(
-              _won(total),
-              style: const TextStyle(
-                color: _blue,
-                fontSize: 25,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ],
         ),
       ],
     ),
@@ -523,20 +637,38 @@ class _PriceRow extends StatelessWidget {
     required this.label,
     required this.value,
     this.accent = false,
+    this.total = false,
   });
+
   final String label;
   final String value;
   final bool accent;
+  final bool total;
+
   @override
   Widget build(BuildContext context) => Row(
     children: [
-      Text(label, style: const TextStyle(color: _muted)),
-      const Spacer(),
-      Text(
-        value,
-        style: TextStyle(
-          color: accent ? const Color(0xFF1DAB6D) : _ink,
-          fontWeight: FontWeight.w700,
+      Expanded(
+        child: Text(
+          label,
+          style: TextStyle(
+            color: total ? _ink : _muted,
+            fontSize: total ? 16 : 14,
+            fontWeight: total ? FontWeight.w800 : FontWeight.w500,
+          ),
+        ),
+      ),
+      const SizedBox(width: 12),
+      Flexible(
+        child: Text(
+          value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: accent ? _blue : _ink,
+            fontSize: total ? 22 : 14,
+            fontWeight: FontWeight.w800,
+          ),
         ),
       ),
     ],
@@ -545,20 +677,22 @@ class _PriceRow extends StatelessWidget {
 
 class _InfoNotice extends StatelessWidget {
   const _InfoNotice();
+
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(15),
+    padding: const EdgeInsets.all(14),
     decoration: BoxDecoration(
       color: const Color(0xFFEAF3FF),
       borderRadius: BorderRadius.circular(15),
     ),
     child: const Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(Icons.info_rounded, color: _blue),
+        Icon(Icons.info_rounded, color: _blue, size: 21),
         SizedBox(width: 9),
         Expanded(
           child: Text(
-            '\uB300\uB9AC\uC810 \uB3C4\uCC29 \uC54C\uB9BC \uD6C4 \uC218\uB839 QR\uC744 \uC81C\uC2DC\uD574 \uC8FC\uC138\uC694.',
+            '대리점 도착 알림을 받은 뒤 수령 QR을 제시해 주세요.',
             style: TextStyle(color: Color(0xFF56709A), fontSize: 12),
           ),
         ),
@@ -571,61 +705,78 @@ class _CheckoutBar extends StatelessWidget {
   const _CheckoutBar({
     required this.total,
     required this.count,
+    required this.busy,
     required this.onOrder,
   });
+
   final int total;
   final int count;
+  final bool busy;
   final VoidCallback onOrder;
+
   @override
-  Widget build(BuildContext context) => Align(
-    alignment: Alignment.bottomCenter,
-    child: Container(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Color(0xFFDCE5F1))),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '\uC120\uD0DD \uC0C1\uD488 ' + count.toString() + '\uAC1C',
-                  style: const TextStyle(color: _muted, fontSize: 12),
+  Widget build(BuildContext context) => Material(
+    color: Colors.white,
+    elevation: 14,
+    shadowColor: const Color(0x2417233C),
+    child: SafeArea(
+      top: false,
+      minimum: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+      child: Center(
+        heightFactor: 1,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 568),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '총 $count개',
+                      style: const TextStyle(color: _muted, fontSize: 12),
+                    ),
+                    Text(
+                      _won(total),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: _ink,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
                 ),
-                Text(
-                  _won(total),
-                  style: const TextStyle(
-                    color: _ink,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: FilledButton(
+                  onPressed: busy ? null : onOrder,
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(54),
+                    backgroundColor: _blue,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                  ),
+                  child: Text(
+                    '$count개 주문하기',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
-              ],
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: ElevatedButton(
-              onPressed: onOrder,
-              style: ElevatedButton.styleFrom(
-                minimumSize: const Size.fromHeight(57),
-                backgroundColor: _blue,
-                foregroundColor: Colors.white,
               ),
-              child: Text(
-                count.toString() +
-                    '\uAC1C \uC0C1\uD488 \uC8FC\uBB38\uD558\uAE30',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     ),
   );
@@ -633,107 +784,71 @@ class _CheckoutBar extends StatelessWidget {
 
 class _EmptyCart extends StatelessWidget {
   const _EmptyCart();
+
   @override
-  Widget build(BuildContext context) => const Center(
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(Icons.shopping_bag_outlined, size: 62, color: _blue),
-        SizedBox(height: 14),
-        Text(
-          '\uC7A5\uBC14\uAD6C\uB2C8\uAC00 \uBE44\uC5B4 \uC788\uC2B5\uB2C8\uB2E4.',
-          style: TextStyle(
-            color: _ink,
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
+  Widget build(BuildContext context) => Center(
+    child: Padding(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 88,
+            height: 88,
+            decoration: const BoxDecoration(
+              color: Color(0xFFEAF3FF),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.shopping_bag_outlined,
+              size: 42,
+              color: _blue,
+            ),
           ),
-        ),
-      ],
+          const SizedBox(height: 18),
+          const Text(
+            '장바구니가 비어 있습니다.',
+            style: TextStyle(
+              color: _ink,
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 7),
+          const Text('마음에 드는 신발을 담아 보세요.', style: TextStyle(color: _muted)),
+        ],
+      ),
     ),
   );
 }
 
 class _CartError extends StatelessWidget {
   const _CartError({required this.onRetry});
+
   final VoidCallback onRetry;
+
   @override
   Widget build(BuildContext context) => Center(
-    child: FilledButton(
-      onPressed: onRetry,
-      child: const Text('\uB2E4\uC2DC \uC2DC\uB3C4'),
+    child: Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.error_outline_rounded, color: _muted, size: 44),
+          const SizedBox(height: 12),
+          const Text('장바구니를 불러오지 못했습니다.'),
+          const SizedBox(height: 12),
+          FilledButton(onPressed: onRetry, child: const Text('다시 시도')),
+        ],
+      ),
     ),
   );
 }
 
-class _CartShoeArtwork extends StatelessWidget {
-  const _CartShoeArtwork();
-  @override
-  Widget build(BuildContext context) => CustomPaint(
-    painter: const _CartShoePainter(),
-    child: const SizedBox.expand(),
-  );
-}
-
-class _CartShoePainter extends CustomPainter {
-  const _CartShoePainter();
-  @override
-  void paint(Canvas canvas, Size size) {
-    final shoe = Paint()..color = Colors.white;
-    final line = Paint()
-      ..color = const Color(0xFF78B2F4)
-      ..strokeCap = StrokeCap.round
-      ..strokeWidth = size.width * .042;
-    final path = Path()
-      ..moveTo(size.width * .08, size.height * .70)
-      ..cubicTo(
-        size.width * .12,
-        size.height * .47,
-        size.width * .36,
-        size.height * .64,
-        size.width * .49,
-        size.height * .16,
-      )
-      ..cubicTo(
-        size.width * .58,
-        size.height * .56,
-        size.width * .76,
-        size.height * .55,
-        size.width * .90,
-        size.height * .68,
-      )
-      ..lineTo(size.width * .88, size.height * .88)
-      ..lineTo(size.width * .14, size.height * .88)
-      ..cubicTo(
-        size.width * .05,
-        size.height * .84,
-        size.width * .05,
-        size.height * .76,
-        size.width * .08,
-        size.height * .70,
-      )
-      ..close();
-    canvas.drawPath(path, shoe);
-    canvas.drawLine(
-      Offset(size.width * .35, size.height * .51),
-      Offset(size.width * .65, size.height * .65),
-      line,
-    );
-    canvas.drawLine(
-      Offset(size.width * .18, size.height * .83),
-      Offset(size.width * .82, size.height * .83),
-      line,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _CartShoePainter oldDelegate) => false;
-}
+int _itemCount(CustomerCartData data) =>
+    data.items.fold(0, (sum, item) => sum + item.quantity);
 
 String _won(int price) {
   final digits = price.toString();
-  return digits.replaceAllMapped(
-        RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
-        (match) => match.group(1)! + ',',
-      ) +
-      '\uC6D0';
+  return '${digits.replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (match) => '${match.group(1)},')}원';
 }

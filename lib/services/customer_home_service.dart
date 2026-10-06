@@ -8,6 +8,39 @@ const customerApiBaseUrl = String.fromEnvironment(
   defaultValue: 'http://192.168.10.40:8000',
 );
 
+final _listingVariantSuffix = RegExp(
+  r'_(m|f|u)_([0-9]+)_([0-9]+)$',
+  caseSensitive: false,
+);
+
+List<CustomerShoe> groupShoeSizeVariants(Iterable<CustomerShoe> shoes) {
+  final grouped = <String, CustomerShoe>{};
+  for (final shoe in shoes) {
+    final key = _listingGroupKey(shoe.id);
+    final current = grouped[key];
+    if (current == null ||
+        _listingRepresentativeRank(shoe) >
+            _listingRepresentativeRank(current)) {
+      grouped[key] = shoe;
+    }
+  }
+  return grouped.values.toList();
+}
+
+String _listingGroupKey(String shoeId) {
+  final suffix = _listingVariantSuffix.firstMatch(shoeId);
+  if (suffix == null) return shoeId.toLowerCase();
+  final productAndColor = shoeId.substring(0, suffix.start);
+  final gender = suffix.group(1)!.toLowerCase();
+  return '${productAndColor}_$gender'.toLowerCase();
+}
+
+int _listingRepresentativeRank(CustomerShoe shoe) {
+  final suffix = _listingVariantSuffix.firstMatch(shoe.id);
+  final size = int.tryParse(suffix?.group(2) ?? '');
+  return (shoe.stock > 0 ? 2 : 0) + (size == 280 ? 1 : 0);
+}
+
 class CustomerHomeService {
   CustomerHomeService({http.Client? client})
     : _client = client ?? http.Client();
@@ -29,7 +62,7 @@ class CustomerHomeService {
       _records('/purchase/select/user/$userId'),
     ]);
 
-    final shoes = results[0].map(CustomerShoe.fromJson).toList();
+    final shoes = groupShoeSizeVariants(results[0].map(CustomerShoe.fromJson));
     final allShoes = results[1].map(CustomerShoe.fromJson).toList();
     final stores = results[2].map(CustomerStore.fromJson).toList();
     final selectedStore =
@@ -164,11 +197,15 @@ class CustomerShoe {
 
   factory CustomerShoe.fromJson(Map<String, dynamic> json) => CustomerShoe(
     id: json['shoe_id']?.toString() ?? '',
-    name: json['brand_name']?.toString().trim().isNotEmpty == true
+    name: json['shoe_name']?.toString().trim().isNotEmpty == true
+        ? json['shoe_name'].toString()
+        : json['brand_name']?.toString().trim().isNotEmpty == true
         ? json['brand_name'].toString()
         : 'STEP SEOUL',
     category: json['shoe_category']?.toString() ?? '',
-    imageUrl: json['shoe_image_url']?.toString(),
+    imageUrl: json['shoe_img_url']?.toString().trim().isNotEmpty == true
+        ? json['shoe_img_url'].toString()
+        : json['shoe_image_url']?.toString(),
     price: json['shoe_price']?.toString() ?? '0',
     stock: int.tryParse(json['stock_quantity']?.toString() ?? '') ?? 0,
   );

@@ -422,3 +422,6 @@ fabric.properties
 !/gradle/wrapper/gradle-wrapper.jar
 
 # End of https://www.toptal.com/developers/gitignore/api/dart,python,flutter,visualstudiocode,androidstudio,firebase
+
+# Local database backups from one-off data maintenance.
+.local-backups/

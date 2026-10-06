@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:get/get.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:step_seoul_app/services/customer_home_service.dart';
 
@@ -104,7 +105,7 @@ class _BranchDirectionsPageState extends State<BranchDirectionsPage> {
       leading: Padding(
         padding: const EdgeInsets.all(8),
         child: IconButton(
-          onPressed: Navigator.of(context).pop,
+          onPressed: () => Get.back(),
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _ink),
           style: IconButton.styleFrom(
             backgroundColor: Colors.white,

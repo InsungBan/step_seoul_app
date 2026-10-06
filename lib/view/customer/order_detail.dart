@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:step_seoul_app/routes/app_routes.dart';
 import 'package:step_seoul_app/services/customer_home_service.dart';
 import 'package:step_seoul_app/services/order_detail_service.dart';
-import 'package:step_seoul_app/view/customer/branch_detail.dart';
-import 'package:step_seoul_app/view/customer/product_detail.dart';
 
 const _blue = Color(0xFF2F67E8);
 const _ink = Color(0xFF17233C);
@@ -43,7 +43,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       leading: Padding(
         padding: const EdgeInsets.all(8),
         child: IconButton(
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => Get.back(),
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _ink),
           style: IconButton.styleFrom(
             backgroundColor: Colors.white,
@@ -218,7 +218,9 @@ class _ItemCard extends StatelessWidget {
       id: item['shoe_id']?.toString() ?? '',
       name: item['name']?.toString() ?? '',
       category: item['category']?.toString() ?? '',
-      imageUrl: item['shoe_image_url']?.toString(),
+      imageUrl: item['shoe_img_url']?.toString().trim().isNotEmpty == true
+          ? item['shoe_img_url'].toString()
+          : item['shoe_image_url']?.toString(),
       price: item['price']?.toString() ?? '0',
       stock: _asInt(item['stock']),
     );
@@ -287,8 +289,9 @@ class _ItemCard extends StatelessWidget {
             ),
           ),
           OutlinedButton(
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => ProductDetail(shoe: shoe)),
+            onPressed: () => Get.toNamed(
+              AppRoutes.productDetail,
+              arguments: shoe,
             ),
             child: const Text('\uC0C1\uD488 \uBCF4\uAE30'),
           ),
@@ -342,12 +345,9 @@ class _StoreCard extends StatelessWidget {
           ),
           TextButton(
             onPressed: canOpen
-                ? () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => BranchDetailPage(
-                        store: CustomerStore.fromJson(store),
-                      ),
-                    ),
+                ? () => Get.toNamed(
+                    AppRoutes.branchDetail,
+                    arguments: CustomerStore.fromJson(store),
                   )
                 : null,
             child: const Text('\uC0C1\uC138\uBCF4\uAE30'),

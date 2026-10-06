@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:step_seoul_app/routes/app_routes.dart';
 import 'package:step_seoul_app/services/customer_home_service.dart';
 import 'package:step_seoul_app/view/customer/cart.dart';
-import 'package:step_seoul_app/view/customer/profile_edit.dart';
 import 'package:step_seoul_app/view/common/session_logout_button.dart';
 
 const _blue = Color(0xFF2F67E8);
@@ -197,9 +198,7 @@ class _ProfileCard extends StatelessWidget {
               ),
             ),
             TextButton.icon(
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const ProfileEditPage()),
-              ),
+              onPressed: () => Get.toNamed(AppRoutes.profileEdit),
               icon: const Icon(Icons.edit_outlined),
               label: const Text('\uC815\uBCF4 \uC218\uC815'),
               style: TextButton.styleFrom(foregroundColor: Colors.white),

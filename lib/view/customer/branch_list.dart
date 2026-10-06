@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:step_seoul_app/routes/app_routes.dart';
 import 'package:step_seoul_app/services/customer_home_service.dart';
 import 'package:step_seoul_app/services/session_service.dart';
-import 'package:step_seoul_app/view/customer/branch_detail.dart';
 import 'package:step_seoul_app/view/customer/cart.dart';
 import 'package:step_seoul_app/view/customer/customer_bottom_tabs.dart';
 
@@ -59,7 +60,7 @@ class _BranchListPageState extends State<BranchListPage> {
             constraints: const BoxConstraints(maxWidth: 620),
             child: Column(
               children: [
-                _AppBar(onBack: () => Navigator.of(context).pop()),
+                _AppBar(onBack: () => Get.back<CustomerStore>()),
                 Expanded(
                   child: ListView(
                     padding: const EdgeInsets.fromLTRB(20, 12, 20, 22),
@@ -127,14 +128,17 @@ class _BranchListPageState extends State<BranchListPage> {
       userId: session.userId,
       storeId: store.id,
     );
-    if (mounted) Navigator.of(context).pop(store);
+    if (mounted) Get.back<CustomerStore>(result: store);
   }
 
   Future<void> _openDetails(CustomerStore store) async {
-    final selected = await Navigator.of(context).push<CustomerStore>(
-      MaterialPageRoute(builder: (_) => BranchDetailPage(store: store)),
+    final selected = await Get.toNamed(
+      AppRoutes.branchDetail,
+      arguments: store,
     );
-    if (selected != null && mounted) Navigator.of(context).pop(selected);
+    if (selected is CustomerStore && mounted) {
+      Get.back<CustomerStore>(result: selected);
+    }
   }
 }
 

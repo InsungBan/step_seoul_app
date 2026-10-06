@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:step_seoul_app/routes/app_routes.dart';
 import 'package:step_seoul_app/services/session_service.dart';
-import 'package:step_seoul_app/view/auth/login.dart';
 
 class SessionLogoutButton extends StatelessWidget {
   const SessionLogoutButton({super.key, this.labeled = false});
@@ -11,7 +11,8 @@ class SessionLogoutButton extends StatelessWidget {
   Widget build(BuildContext context) {
     Future<void> signOut() async {
       await SessionService.instance.clearSession();
-      Get.offAll(() => const Login());
+      if (!context.mounted) return;
+      Get.offAllNamed(AppRoutes.login);
     }
 
     if (labeled) {

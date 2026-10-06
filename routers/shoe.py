@@ -7,13 +7,15 @@ router = APIRouter(prefix="/shoe", tags=["shoe"])
 
 @router.post("/upload")
 def upload(
-    shoe_id: str = Form(..., max_length=20),
+    shoe_id: str = Form(..., max_length=45),
     brand_name: str | None = Form(None, max_length=45),
     shoe_category: str | None = Form(None, max_length=45),
     shoe_image_url: str | None = Form(None),
     shoe_price: str | None = Form(None, max_length=45),
     standard_stock: int | None = Form(None, ge=-2147483648, le=2147483647),
     stock_quantity: int | None = Form(None, ge=-2147483648, le=2147483647),
+    shoe_img_url: str | None = Form(None),
+    shoe_name: str | None = Form(None, max_length=45),
 ):
     return create_shoe(
         shoe_id,
@@ -23,6 +25,8 @@ def upload(
         shoe_price,
         standard_stock,
         stock_quantity,
+        shoe_img_url=shoe_img_url,
+        shoe_name=shoe_name,
     )
 
 
@@ -48,6 +52,8 @@ def update(
     shoe_price: str | None = Form(None, max_length=45),
     standard_stock: int | None = Form(None, ge=-2147483648, le=2147483647),
     stock_quantity: int | None = Form(None, ge=-2147483648, le=2147483647),
+    shoe_img_url: str | None = Form(None),
+    shoe_name: str | None = Form(None, max_length=45),
 ):
     return update_shoe(
         shoe_id,
@@ -57,6 +63,8 @@ def update(
         shoe_price,
         standard_stock,
         stock_quantity,
+        shoe_img_url=shoe_img_url,
+        shoe_name=shoe_name,
     )
 
 

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:step_seoul_app/routes/app_routes.dart';
 import 'package:step_seoul_app/services/customer_home_service.dart';
 import 'package:step_seoul_app/view/customer/cart.dart';
 import 'package:step_seoul_app/view/customer/customer_bottom_tabs.dart';
-import 'package:step_seoul_app/view/customer/product_detail.dart';
 import 'package:step_seoul_app/view/customer/shoe_image.dart';
 
 const _blue = Color(0xFF2F67E8);
@@ -53,7 +54,7 @@ class _ProductListState extends State<ProductList> {
         leading: Padding(
           padding: const EdgeInsets.all(8),
           child: IconButton(
-            onPressed: Navigator.of(context).pop,
+            onPressed: () => Get.back(),
             icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _ink),
             style: IconButton.styleFrom(
               backgroundColor: Colors.white,
@@ -224,9 +225,7 @@ class _ProductTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final inStock = shoe.stock > 0;
     return GestureDetector(
-      onTap: () => Navigator.of(
-        context,
-      ).push(MaterialPageRoute(builder: (_) => ProductDetail(shoe: shoe))),
+      onTap: () => Get.toNamed(AppRoutes.productDetail, arguments: shoe),
       child: Container(
         padding: const EdgeInsets.all(13),
         decoration: BoxDecoration(
@@ -243,36 +242,38 @@ class _ProductTile extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Stack(
-              children: [
-                Container(
-                  height: 151,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: accent,
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: ShoeImage(
-                      imageUrl: shoe.imageUrl,
-                      fit: BoxFit.contain,
+            Flexible(
+              child: Stack(
+                children: [
+                  Container(
+                    height: 151,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: accent,
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: ShoeImage(
+                        imageUrl: shoe.imageUrl,
+                        fit: BoxFit.contain,
+                      ),
                     ),
                   ),
-                ),
-                const Positioned(
-                  top: 8,
-                  right: 8,
-                  child: CircleAvatar(
-                    radius: 16,
-                    backgroundColor: Colors.white,
-                    child: Icon(
-                      Icons.favorite_border_rounded,
-                      color: Color(0xFF71839E),
+                  const Positioned(
+                    top: 8,
+                    right: 8,
+                    child: CircleAvatar(
+                      radius: 16,
+                      backgroundColor: Colors.white,
+                      child: Icon(
+                        Icons.favorite_border_rounded,
+                        color: Color(0xFF71839E),
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
             const SizedBox(height: 12),
             _AvailabilityTag(inStock: inStock),

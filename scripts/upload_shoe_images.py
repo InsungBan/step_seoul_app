@@ -5,7 +5,8 @@ Prerequisites:
   Set FIREBASE_SERVICE_ACCOUNT to the *local* service account JSON path.
   Put images in assets/shoes/, named exactly after the MySQL shoe_id.
 
-The script updates `shoe.shoe_image_url` only after each successful upload.
+The script updates `shoe.shoe_img_url` and the legacy `shoe.shoe_image_url`
+only after each successful upload.
 Do not commit the service account JSON file.
 """
 
@@ -23,6 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from db.database import db
+from services.shoe_schema import ensure_shoe_schema
 
 IMAGE_DIRECTORY = ROOT / "assets" / "shoes"
 BUCKET_NAME = "stepseoulapp.firebasestorage.app"
@@ -42,6 +44,7 @@ def main():
     if not images:
         raise SystemExit("No shoe images found. Use assets/shoes/{shoe_id}.jpg.")
 
+    ensure_shoe_schema()
     conn = db()
     try:
         with conn.cursor() as cursor:
@@ -64,8 +67,8 @@ def main():
                     f"{quote(object_name, safe='')}?alt=media&token={token}"
                 )
                 cursor.execute(
-                    "UPDATE `shoe` SET `shoe_image_url` = %s WHERE `shoe_id` = %s",
-                    (download_url, shoe_id),
+                    "UPDATE `shoe` SET `shoe_img_url` = %s, `shoe_image_url` = %s WHERE `shoe_id` = %s",
+                    (download_url, download_url, shoe_id),
                 )
                 print(f"UPLOADED {shoe_id}: {download_url}")
         conn.commit()

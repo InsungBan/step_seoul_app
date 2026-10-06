@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:step_seoul_app/routes/app_routes.dart';
 import 'package:step_seoul_app/services/customer_cart_service.dart';
 import 'package:step_seoul_app/services/customer_home_service.dart';
 import 'package:step_seoul_app/services/checkout_service.dart';
 import 'package:step_seoul_app/services/session_service.dart';
 import 'package:step_seoul_app/view/customer/cart.dart';
-import 'package:step_seoul_app/view/customer/order_complete.dart';
 
 const _blue = Color(0xFF2F67E8);
 const _ink = Color(0xFF17233C);
@@ -120,9 +121,7 @@ class _CheckoutPaymentPageState extends State<CheckoutPaymentPage> {
         clearCart: widget.clearCart,
       );
       if (!mounted) return;
-      await Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => OrderCompletePage(receipt: receipt)),
-      );
+      await Get.offNamed(AppRoutes.orderComplete, arguments: receipt);
     } on CheckoutException catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(
@@ -162,7 +161,7 @@ class _CheckoutPaymentPageState extends State<CheckoutPaymentPage> {
       leading: Padding(
         padding: const EdgeInsets.all(8),
         child: IconButton(
-          onPressed: Navigator.of(context).pop,
+          onPressed: () => Get.back(),
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _ink),
           style: IconButton.styleFrom(
             backgroundColor: Colors.white,

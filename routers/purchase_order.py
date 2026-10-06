@@ -13,7 +13,7 @@ def upload(
     get_amount: str | None = Form(None, max_length=45),
     order_id: str = Form(..., max_length=45),
     order_quantity: str | None = Form(None, max_length=45),
-    shoe_shoe_id: str = Form(..., max_length=20),
+    shoe_shoe_id: str = Form(..., max_length=45),
 ):
     return create_purchase_order(shoe_manufacturer_manufacturer_id, approval_approval_id, order_date, get_amount, order_id, order_quantity, shoe_shoe_id)
 
