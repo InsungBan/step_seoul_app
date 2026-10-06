@@ -12,8 +12,9 @@ def upload(
     shoe_price: str | None = Form(None, max_length=45),
     standard_stock: int | None = Form(None, ge=-2147483648, le=2147483647),
     stock_quantity: int | None = Form(None, ge=-2147483648, le=2147483647),
+    manufacturer_name: str | None = Form(None, min_length=1, max_length=45),
 ):
-    return create_shoe(shoe_id, brand_name, shoe_price, standard_stock, stock_quantity)
+    return create_shoe(shoe_id, brand_name, shoe_price, standard_stock, stock_quantity, manufacturer_name)
 
 
 @router.get("/select")

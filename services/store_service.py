@@ -17,7 +17,7 @@ def create_store(
         "store_id": store_id,
         "latitude": latitude,
         "longitude": longitude,
-        "district_name": district_name,
+        "district_name": district_name.strip() if district_name is not None else None,
         "agency_name": agency_name,
         "phone": phone,
     }
@@ -43,7 +43,7 @@ def update_store(
     data = {
         "latitude": latitude,
         "longitude": longitude,
-        "district_name": district_name,
+        "district_name": district_name.strip() if district_name is not None else None,
         "agency_name": agency_name,
         "phone": phone,
     }

@@ -11,8 +11,9 @@ def upload(
     employee_employee_id: str = Form(..., max_length=20),
     return_id: str = Form(..., max_length=45),
     return_date: str | None = Form(None, max_length=45),
+    refund_refund_id: str | None = Form(None, min_length=1, max_length=45),
 ):
-    return create_return_record(shoe_shoe_id, employee_employee_id, return_id, return_date)
+    return create_return_record(shoe_shoe_id, employee_employee_id, return_id, return_date, refund_refund_id)
 
 
 @router.get("/select")
@@ -26,8 +27,9 @@ def update(
     employee_employee_id: str,
     return_id: str,
     return_date: str | None = Form(None, max_length=45),
+    refund_refund_id: str | None = Form(None, min_length=1, max_length=45),
 ):
-    return update_return_record(shoe_shoe_id, employee_employee_id, return_id, return_date)
+    return update_return_record(shoe_shoe_id, employee_employee_id, return_id, return_date, refund_refund_id)
 
 
 @router.delete("/delete/{shoe_shoe_id}/{employee_employee_id}/{return_id}")
