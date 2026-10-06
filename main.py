@@ -25,6 +25,8 @@ from routers.shoe_manufacturer import router as shoe_manufacturer_router
 from routers.store import router as store_router
 from routers.user import router as user_router
 from services.shoe_service import ensure_shoe_category_column
+from services.refund_request_service import ensure_refund_request_columns
+from services.receive_service import ensure_pickup_link_columns
 
 app = FastAPI(title="STEP SEOUL API", version="1.0.0")
 app.add_middleware(
@@ -38,6 +40,8 @@ app.add_middleware(
 @app.on_event("startup")
 def initialize_schema():
     ensure_shoe_category_column()
+    ensure_refund_request_columns()
+    ensure_pickup_link_columns()
 
 app.include_router(approval_router)
 app.include_router(approval_process_router)

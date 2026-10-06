@@ -789,6 +789,17 @@ class MockDatabase extends ChangeNotifier {
     );
   }
 
+  void markShipmentDelivered(String shipmentCode) {
+    final order = orders
+        .where((item) => item.orderCode == shipmentCode)
+        .firstOrNull;
+    if (order == null || order.status == DeliveryStatus.deliveredCompleted) {
+      return;
+    }
+    order.status = DeliveryStatus.deliveredCompleted;
+    notifyListeners();
+  }
+
   void receiveInventory(String productId, int quantity, {String? staff}) {
     final actor = staff?.isNotEmpty == true
         ? staff!

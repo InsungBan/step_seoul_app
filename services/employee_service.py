@@ -10,6 +10,21 @@ def create_employee(
     employee_name: str | None,
     employee_department: str | None,
 ):
+    # employee_id identifies a single employee. Return a clear conflict when an
+    # upload is repeated instead of exposing a generic MySQL constraint error.
+    existing_employee = execute(
+        "SELECT 1 FROM `employee` WHERE `employee_id` = %s",
+        (employee_id,),
+    )["result"]
+    if existing_employee:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"직원 ID '{employee_id}'는 이미 등록되어 있습니다. "
+                "기존 직원 정보는 수정 API를 사용해 주세요."
+            ),
+        )
+
     data = {
         "employee_id": employee_id,
         "employee_pw": employee_pw,

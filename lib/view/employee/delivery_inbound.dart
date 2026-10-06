@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:step_seoul_app/services/work_activity_store.dart';
 import 'package:step_seoul_app/widgets/product_image.dart';
+import 'package:step_seoul_app/services/employee_operations_api.dart';
 
 const navy = Color(0xFF14284B),
     blue = Color(0xFF3268E8),
@@ -20,32 +21,75 @@ class DeliveryInboundPage extends StatefulWidget {
   State<DeliveryInboundPage> createState() => _DeliveryInboundPageState();
 }
 
+String _displayDeliveryStatus(String value) {
+  final normalized = value.toLowerCase().replaceAll(RegExp(r'[\s_-]'), '');
+  if (normalized.contains('transit') || normalized.contains('배송중')) {
+    return '매장으로 배송 중';
+  }
+  if (normalized.contains('이동중')) return '물류센터 이동 중';
+  return value.isEmpty ? '상태 미등록' : value;
+}
+
 class _DeliveryInboundPageState extends State<DeliveryInboundPage> {
   final search = TextEditingController();
   String status = '전체 상태', arrivalDate = '전체 날짜';
   _Delivery? selectedItem;
-  bool isDetailOpen = false,
-      isPhoneModalOpen = false,
-      isMapModalOpen = false,
-      isInboundModalOpen = false;
+  bool isDetailOpen = false, isPhoneModalOpen = false, isMapModalOpen = false;
   final _database = MockDatabase.instance;
-  List<_Delivery> get items => _database.orders
-      .map((order) => _Delivery.fromOrder(order, _database))
+  final _shipmentApi = EmployeeOperationsApi.instance;
+  List<Map<String, dynamic>> _shipmentRows = [];
+  final Set<String> _selectedShipmentIds = {};
+  bool _loadingShipments = true;
+  bool _processingInbound = false;
+  String? _loadError;
+  List<_Delivery> get items => _shipmentRows
+      .map((row) => _Delivery.fromShipmentRow(row, _database))
       .toList();
 
   @override
   void initState() {
     super.initState();
     _database.addListener(_refresh);
+    _loadShipments();
   }
 
   void _refresh() {
     if (!mounted) return;
     setState(() {
       final code = selectedItem?.code;
-      if (code != null)
+      if (code != null) {
         selectedItem = items.where((item) => item.code == code).firstOrNull;
+      }
     });
+  }
+
+  Future<void> _loadShipments() async {
+    if (mounted)
+      setState(() {
+        _loadingShipments = true;
+        _loadError = null;
+      });
+    try {
+      final rows = await _shipmentApi.getInTransitShipments();
+      if (!mounted) return;
+      final converted = rows
+          .map((row) => Map<String, dynamic>.from(row))
+          .toList();
+      final validIds = converted
+          .map((row) => row['shipment_id']?.toString() ?? '')
+          .toSet();
+      setState(() {
+        _shipmentRows = converted;
+        _selectedShipmentIds.removeWhere((id) => !validIds.contains(id));
+        _loadingShipments = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loadingShipments = false;
+        _loadError = error.toString();
+      });
+    }
   }
 
   @override
@@ -198,52 +242,87 @@ class _DeliveryInboundPageState extends State<DeliveryInboundPage> {
           ),
         ),
         const Divider(height: 1),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: DataTable(
-            columnSpacing: 20,
-            columns: const [
-              DataColumn(label: Text('주문/배송 코드')),
-              DataColumn(label: Text('상품 정보')),
-              DataColumn(label: Text('수량')),
-              DataColumn(label: Text('현재 배송 상태')),
-              DataColumn(label: Text('예상 도착시간')),
-              DataColumn(label: Text('작업')),
-            ],
-            rows: filtered
-                .map(
-                  (item) => DataRow(
-                    cells: [
-                      DataCell(Text(item.code)),
-                      DataCell(
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            ProductImage(
-                              imageUrl: item.imageUrl,
-                              width: 42,
-                              height: 42,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(item.name + ' · ' + item.option),
-                          ],
+        if (_loadingShipments)
+          const Padding(
+            padding: EdgeInsets.all(36),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        else if (_loadError != null)
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                Text(_loadError!, style: const TextStyle(color: Colors.red)),
+                TextButton.icon(
+                  onPressed: _loadShipments,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('다시 불러오기'),
+                ),
+              ],
+            ),
+          )
+        else if (items.isEmpty)
+          const Padding(
+            padding: EdgeInsets.all(24),
+            child: Center(child: Text('배송 중인 상품이 없습니다.')),
+          )
+        else
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
+              columnSpacing: 20,
+              columns: const [
+                DataColumn(label: Text('주문/배송 코드')),
+                DataColumn(label: Text('상품 정보')),
+                DataColumn(label: Text('수량')),
+                DataColumn(label: Text('현재 배송 상태')),
+                DataColumn(label: Text('예상 도착시간')),
+                DataColumn(label: Text('작업')),
+              ],
+              rows: filtered
+                  .map(
+                    (item) => DataRow(
+                      selected: _selectedShipmentIds.contains(item.id),
+                      onSelectChanged: (checked) {
+                        setState(() {
+                          if (checked == true) {
+                            _selectedShipmentIds.add(item.id);
+                          } else {
+                            _selectedShipmentIds.remove(item.id);
+                          }
+                        });
+                      },
+                      cells: [
+                        DataCell(Text(item.code)),
+                        DataCell(
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ProductImage(
+                                imageUrl: item.imageUrl,
+                                width: 42,
+                                height: 42,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(item.name + ' · ' + item.option),
+                            ],
+                          ),
                         ),
-                      ),
-                      DataCell(Text(item.qty.toString() + '개')),
-                      DataCell(Text(item.status)),
-                      DataCell(Text(item.arrival)),
-                      DataCell(
-                        TextButton(
-                          onPressed: () => showDetail(item),
-                          child: const Text('배송위치 상세보기'),
+                        DataCell(Text(item.qty.toString() + '개')),
+                        DataCell(Text(item.status)),
+                        DataCell(Text(item.arrival)),
+                        DataCell(
+                          TextButton(
+                            onPressed: () => showDetail(item),
+                            child: const Text('배송위치 상세보기'),
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                )
-                .toList(),
+                      ],
+                    ),
+                  )
+                  .toList(),
+            ),
           ),
-        ),
       ],
     ),
   );
@@ -398,26 +477,80 @@ class _DeliveryInboundPageState extends State<DeliveryInboundPage> {
   }
 
   Future<void> openInbound() async {
-    setState(() => isInboundModalOpen = true);
-    final item = selectedItem ?? (items.isEmpty ? null : items.first);
-    if (item == null) {
-      if (mounted) setState(() => isInboundModalOpen = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('입고 처리할 배송 데이터가 없습니다.')));
+    final selected = items
+        .where((item) => _selectedShipmentIds.contains(item.id))
+        .toList();
+    if (selected.isEmpty || _processingInbound) return;
+    if (selected.any(
+      (item) =>
+          item.pickupUserId.isEmpty ||
+          item.pickupPaymentId.isEmpty ||
+          item.pickupPurchaseId.isEmpty,
+    )) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('주문과 고객 정보가 연결되지 않은 배송 건은 수령 대기로 등록할 수 없습니다.'),
+        ),
+      );
       return;
     }
-    final completed = await showDialog<bool>(
+
+    final actualQuantities = await showDialog<Map<String, int>>(
       context: context,
-      builder: (_) => _InboundDialog(item: item),
+      builder: (_) => _InboundDialog(items: selected),
     );
-    if (mounted) setState(() => isInboundModalOpen = false);
-    if (completed == true) {
-      _database.completeDelivery(item.id);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('입고 처리가 완료되었습니다.')));
+    if (actualQuantities == null || !mounted) return;
+
+    setState(() => _processingInbound = true);
+    final completed = <_Delivery>[];
+    Object? failure;
+    for (final item in selected) {
+      try {
+        await _shipmentApi.updateShipmentAsDelivered(
+          shoeId: item.shoeId,
+          employeeId: item.employeeId,
+          shipmentId: item.id,
+          storeId: item.storeId,
+          pickupUserId: item.pickupUserId,
+          pickupPaymentId: item.pickupPaymentId,
+          pickupPurchaseId: item.pickupPurchaseId,
+          receiveId:
+              'RCP-' +
+              DateTime.now().microsecondsSinceEpoch.toString() +
+              '-' +
+              completed.length.toString(),
+          receiveQuantity: actualQuantities[item.id] ?? item.qty,
+        );
+        completed.add(item);
+      } catch (error) {
+        failure = error;
+        break;
+      }
     }
+    if (!mounted) return;
+    setState(() {
+      _processingInbound = false;
+      for (final item in completed) {
+        _selectedShipmentIds.remove(item.id);
+      }
+    });
+    if (completed.isNotEmpty) {
+      try {
+        _database.restoreState(await _shipmentApi.readState());
+      } catch (error) {
+        failure ??= error;
+      }
+    }
+    await _loadShipments();
+    if (!mounted) return;
+    final message = failure == null
+        ? completed.length.toString() + '건의 배송 완료 및 고객 수령 대기 등록을 처리했습니다.'
+        : completed.length.toString() +
+              '건 처리 후 오류가 발생했습니다: ' +
+              failure.toString();
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
@@ -431,28 +564,65 @@ class _Delivery {
     required this.qty,
     required this.status,
     required this.arrival,
+    required this.shoeId,
+    required this.employeeId,
+    required this.storeId,
+    required this.pickupUserId,
+    required this.pickupPaymentId,
+    required this.pickupPurchaseId,
   });
-  factory _Delivery.fromOrder(MockOrder order, MockDatabase database) {
-    final product = database.productForOrder(order);
-    final arrival = order.expectedAt.year <= 1970
-        ? '-'
-        : order.expectedAt.year.toString() +
-              '.' +
-              order.expectedAt.month.toString().padLeft(2, '0') +
-              '.' +
-              order.expectedAt.day.toString().padLeft(2, '0');
+
+  factory _Delivery.fromShipmentRow(
+    Map<String, dynamic> row,
+    MockDatabase database,
+  ) {
+    String value(String key) => row[key]?.toString() ?? '';
+    final id = value('shipment_id');
+    final shoeId = value('shoe_shoe_id');
+    final order = database.orders
+        .where((item) => item.orderCode == id)
+        .firstOrNull;
+    final product = database.products
+        .where((item) => item.id == shoeId)
+        .firstOrNull;
+    final date = DateTime.tryParse(
+      value('expected_at').isNotEmpty
+          ? value('expected_at')
+          : value('arrival_date'),
+    );
+    final arrival = date == null
+        ? (order == null || order.expectedAt.year <= 1970
+              ? '-'
+              : _formatDate(order.expectedAt))
+        : _formatDate(date);
     return _Delivery(
-      id: order.id,
-      code: order.orderCode,
-      name: product.name,
-      imageUrl: product.imageUrl,
-      option: product.option,
-      qty: order.quantity,
-      status: deliveryStatusLabel(order.status),
+      id: id,
+      code: id,
+      name: product?.name ?? shoeId,
+      imageUrl: product?.imageUrl ?? '',
+      option: product?.option ?? '-',
+      qty: int.tryParse(value('delivery_quantity')) ?? order?.quantity ?? 0,
+      status: _displayDeliveryStatus(value('delivery_status')),
       arrival: arrival,
+      shoeId: shoeId,
+      employeeId: value('employee_employee_id'),
+      storeId: value('store_store_id'),
+      pickupUserId: value('pickup_user_id'),
+      pickupPaymentId: value('pickup_payment_id'),
+      pickupPurchaseId: value('pickup_purchase_id'),
     );
   }
+
+  static String _formatDate(DateTime value) =>
+      value.year.toString() +
+      '.' +
+      value.month.toString().padLeft(2, '0') +
+      '.' +
+      value.day.toString().padLeft(2, '0');
+
   final String id, code, name, imageUrl, option, status, arrival;
+  final String shoeId, employeeId, storeId, pickupUserId, pickupPaymentId;
+  final String pickupPurchaseId;
   final int qty;
 }
 
@@ -654,110 +824,116 @@ class _RoutePainter extends CustomPainter {
 }
 
 class _InboundDialog extends StatefulWidget {
-  const _InboundDialog({required this.item});
-  final _Delivery item;
+  const _InboundDialog({required this.items});
+  final List<_Delivery> items;
+
   @override
   State<_InboundDialog> createState() => _InboundDialogState();
 }
 
 class _InboundDialogState extends State<_InboundDialog> {
-  late final actual = TextEditingController(
-    text: widget.item.qty > 0 ? widget.item.qty.toString() : '',
-  );
-  final damaged = TextEditingController();
-  final memo = TextEditingController();
-  String store = '';
+  late final Map<String, TextEditingController> _quantities = {
+    for (final item in widget.items)
+      item.id: TextEditingController(text: item.qty.toString()),
+  };
+  String? _error;
+
   @override
   void dispose() {
-    actual.dispose();
-    damaged.dispose();
-    memo.dispose();
+    for (final controller in _quantities.values) {
+      controller.dispose();
+    }
     super.dispose();
+  }
+
+  void _submit() {
+    final values = <String, int>{};
+    for (final item in widget.items) {
+      final quantity = int.tryParse(_quantities[item.id]?.text.trim() ?? '');
+      if (quantity == null || quantity < 1) {
+        setState(() => _error = '입고 수량을 1개 이상 입력하세요.');
+        return;
+      }
+      values[item.id] = quantity;
+    }
+    Navigator.pop(context, values);
   }
 
   @override
   Widget build(BuildContext context) => AlertDialog(
     title: const Text('입고 처리'),
     content: SizedBox(
-      width: 500,
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              '선택한 상품의 입고 정보를 입력하고, 입고 처리를 완료하세요.',
-              style: TextStyle(color: muted, fontSize: 11),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              widget.item.name + ' · ' + widget.item.option,
-              style: const TextStyle(fontWeight: FontWeight.w800),
-            ),
-            Text(
-              '예상 수량 ' + widget.item.qty.toString() + '개',
-              style: const TextStyle(color: muted, fontSize: 11),
-            ),
-            Row(
-              children: [
-                Expanded(child: _field('실제 입고 수량', actual)),
-                const SizedBox(width: 8),
-                Expanded(child: _field('파손 수량', damaged)),
-              ],
-            ),
-            Row(
-              children: [
-                Expanded(
-                  child: Builder(
-                    builder: (context) {
-                      final database = MockDatabase.instance;
-                      final options = database.stores
-                          .map((item) => database.storeName(item['id'] ?? ''))
-                          .where((name) => name.isNotEmpty)
-                          .toSet()
-                          .toList();
-                      final selected = options.contains(store)
-                          ? store
-                          : options.firstOrNull ?? '';
-                      if (options.isEmpty) {
-                        return const TextField(
-                          enabled: false,
-                          decoration: InputDecoration(
-                            labelText: '입고 매장',
-                            hintText: '매장 데이터 없음',
-                          ),
-                        );
-                      }
-                      return _choice(
-                        '입고 매장',
-                        selected,
-                        options,
-                        (value) => setState(() => store = value),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    '입고 시각 ' +
-                        DateTime.now().toLocal().toString().substring(0, 16),
-                    style: const TextStyle(color: muted, fontSize: 11),
-                  ),
-                ),
-              ],
-            ),
-            TextField(
-              controller: memo,
-              maxLength: 500,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                labelText: '메모',
-                border: OutlineInputBorder(),
+      width: 520,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('실제 입고 수량을 확인하세요. 처리 후 고객 수령 대기 목록에 등록됩니다.'),
+          const SizedBox(height: 14),
+          Flexible(
+            child: SingleChildScrollView(
+              child: Column(
+                children: widget.items
+                    .map(
+                      (item) => Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: Row(
+                          children: [
+                            ProductImage(
+                              imageUrl: item.imageUrl,
+                              width: 44,
+                              height: 44,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    item.name,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  Text(
+                                    item.code +
+                                        ' · 예상 ' +
+                                        item.qty.toString() +
+                                        '개',
+                                    style: const TextStyle(
+                                      color: muted,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            SizedBox(
+                              width: 108,
+                              child: TextField(
+                                controller: _quantities[item.id],
+                                keyboardType: TextInputType.number,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly,
+                                ],
+                                decoration: const InputDecoration(
+                                  labelText: '실제 입고',
+                                  suffixText: '개',
+                                  isDense: true,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                    .toList(),
               ),
             ),
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 8),
+            Text(_error!, style: const TextStyle(color: Colors.red)),
           ],
-        ),
+        ],
       ),
     ),
     actions: [
@@ -765,50 +941,7 @@ class _InboundDialogState extends State<_InboundDialog> {
         onPressed: () => Navigator.pop(context),
         child: const Text('취소'),
       ),
-      ElevatedButton(
-        onPressed: () {
-          Navigator.pop(context, true);
-        },
-        child: const Text('입고 완료'),
-      ),
+      FilledButton(onPressed: _submit, child: const Text('입고 완료')),
     ],
-  );
-  Widget _field(String label, TextEditingController c) => TextField(
-    controller: c,
-    keyboardType: TextInputType.number,
-    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-    decoration: InputDecoration(
-      labelText: label,
-      suffixText: '개',
-      border: const OutlineInputBorder(),
-    ),
-  );
-  Widget _choice(
-    String label,
-    String value,
-    List<String> values,
-    ValueChanged<String> change,
-  ) => InputDecorator(
-    decoration: InputDecoration(
-      labelText: label,
-      border: const OutlineInputBorder(),
-    ),
-    child: DropdownButtonHideUnderline(
-      child: DropdownButton<String>(
-        isExpanded: true,
-        value: value,
-        items: values
-            .map(
-              (v) => DropdownMenuItem(
-                value: v,
-                child: Text(v, style: const TextStyle(fontSize: 10)),
-              ),
-            )
-            .toList(),
-        onChanged: (v) {
-          if (v != null) change(v);
-        },
-      ),
-    ),
   );
 }
