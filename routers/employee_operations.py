@@ -34,13 +34,28 @@ def put_state(payload: StatePayload):
 @router.get("/mysql-source")
 def get_mysql_source():
     """Return employee source rows from the existing MySQL CRUD tables."""
+    users = read_user()["result"]
+    employees = read_employee()["result"]
+    stores = read_store()["result"]
     return {
         "products": read_shoe()["result"],
         "shipments": read_shipment()["result"],
         "receipts": read_receive()["result"],
         "returns": read_return_record()["result"],
         "purchases": read_purchase()["result"],
-        "users": read_user()["result"],
-        "employees": read_employee()["result"],
-        "stores": read_store()["result"],
+        "users": [
+            {key: row.get(key) for key in ("user_id", "user_name", "user_phone")}
+            for row in users
+        ],
+        "employees": [
+            {
+                key: row.get(key)
+                for key in ("employee_id", "employee_name", "employee_position", "employee_department")
+            }
+            for row in employees
+        ],
+        "stores": [
+            {key: row.get(key) for key in ("store_id", "agency_name", "district_name", "phone")}
+            for row in stores
+        ],
     }

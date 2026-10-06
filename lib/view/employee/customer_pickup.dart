@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:step_seoul_app/services/work_activity_store.dart';
+import 'package:step_seoul_app/widgets/product_image.dart';
 import 'package:flutter/services.dart';
 
 const _navy = Color(0xFF14284B),
@@ -539,15 +540,7 @@ class _CustomerPickupPageState extends State<CustomerPickupPage> {
       children: [
         Row(
           children: [
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: const Color(0xFFE4EAF3),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.directions_run, color: _navy, size: 30),
-            ),
+            ProductImage(imageUrl: o.imageUrl, width: 52, height: 52),
             const SizedBox(width: 8),
             Expanded(
               child: Column(
@@ -666,6 +659,7 @@ class _Pickup {
     required this.code,
     required this.customer,
     required this.product,
+    required this.imageUrl,
     required this.option,
     required this.qty,
     required this.arrival,
@@ -683,6 +677,7 @@ class _Pickup {
       code: order.orderCode,
       customer: order.customer,
       product: product.name,
+      imageUrl: product.imageUrl,
       option: product.option,
       qty: value.quantity,
       arrival: _date(value.arrivedAt),
@@ -703,6 +698,7 @@ class _Pickup {
       code,
       customer,
       product,
+      imageUrl,
       option,
       arrival,
       status,
@@ -841,18 +837,11 @@ class _DetailDialog extends StatelessWidget {
           children: [
             Row(
               children: [
-                Container(
+                ProductImage(
+                  imageUrl: order.imageUrl,
                   width: 88,
                   height: 88,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE4EAF3),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(
-                    Icons.directions_run,
-                    color: _navy,
-                    size: 52,
-                  ),
+                  borderRadius: 10,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -904,7 +893,7 @@ class _DetailDialog extends StatelessWidget {
             _Info('수령 상태', order.status),
             _Info('도착일', order.arrival),
             _Info('보관 위치', order.location),
-            const _Info('메모', '방문 시 본인 확인 후 전달'),
+            const _Info('메모', '메모 정보 없음'),
           ],
         ),
       ),
@@ -928,7 +917,7 @@ class _CompleteDialog extends StatefulWidget {
 class _CompleteDialogState extends State<_CompleteDialog> {
   final checks = List<bool>.filled(4, false);
   DateTime at = DateTime.now();
-  String staff = '김직원';
+  String staff = MockDatabase.instance.activeEmployeeName;
   @override
   Widget build(BuildContext context) => AlertDialog(
     title: const Text('수령 완료 처리'),
@@ -991,10 +980,21 @@ class _CompleteDialogState extends State<_CompleteDialog> {
                 const SizedBox(width: 7),
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    initialValue: staff,
+                    initialValue:
+                        MockDatabase.instance.employees.any(
+                          (employee) => employee['name'] == staff,
+                        )
+                        ? staff
+                        : null,
                     decoration: const InputDecoration(labelText: '처리 담당자'),
-                    items: ['김직원', '박관리자', '이직원']
-                        .map((x) => DropdownMenuItem(value: x, child: Text(x)))
+                    items: MockDatabase.instance.employees
+                        .map((employee) => employee['name'] ?? '')
+                        .where((name) => name.isNotEmpty)
+                        .toSet()
+                        .map(
+                          (name) =>
+                              DropdownMenuItem(value: name, child: Text(name)),
+                        )
                         .toList(),
                     onChanged: (x) {
                       if (x != null) setState(() => staff = x);

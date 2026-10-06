@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:step_seoul_app/services/work_activity_store.dart';
+import 'package:step_seoul_app/widgets/product_image.dart';
 
 const _navy = Color(0xFF14284B);
 const _blue = Color(0xFF3268E8);
@@ -32,14 +33,14 @@ class _WorkHistoryPageState extends State<WorkHistoryPage> {
   final _search = TextEditingController();
   String _staff = '전체 담당자';
   String _type = '전체 업무 유형';
-  DateTime _selectedDate = DateTime(2025, 9, 28);
+  DateTime _selectedDate = DateTime.now();
   WorkActivity? _selected;
 
   @override
   void initState() {
     super.initState();
     _store.addListener(_onActivitiesChanged);
-    _selectedDate = _store.items.first.createdAt;
+    if (_store.items.isNotEmpty) _selectedDate = _store.items.first.createdAt;
     _selectInitial();
   }
 
@@ -240,11 +241,12 @@ class _WorkHistoryPageState extends State<WorkHistoryPage> {
                 icon: const Icon(Icons.calendar_month, size: 16),
                 label: Text(_formatDate(_selectedDate)),
               ),
-              _dropdown(_staff, const [
+              _dropdown(_staff, [
                 '전체 담당자',
-                '김직원',
-                '박현우',
-                '이민우',
+                ..._database.logs
+                    .map((log) => log.staff)
+                    .where((name) => name.isNotEmpty)
+                    .toSet(),
               ], (value) => setState(() => _staff = value)),
               _dropdown(_type, const [
                 '전체 업무 유형',
@@ -318,7 +320,10 @@ class _WorkHistoryPageState extends State<WorkHistoryPage> {
                               width: 190,
                               child: Row(
                                 children: [
-                                  _thumb(item.type),
+                                  _thumb(
+                                    item.type,
+                                    imageUrl: _productImage(item.product),
+                                  ),
                                   const SizedBox(width: 7),
                                   Expanded(
                                     child: Column(
@@ -434,7 +439,11 @@ class _WorkHistoryPageState extends State<WorkHistoryPage> {
                   ),
                   child: Row(
                     children: [
-                      _thumb(item.type, size: 52),
+                      _thumb(
+                        item.type,
+                        size: 52,
+                        imageUrl: _productImage(item.product),
+                      ),
                       const SizedBox(width: 11),
                       Expanded(
                         child: Column(
@@ -535,7 +544,14 @@ class _WorkHistoryPageState extends State<WorkHistoryPage> {
       },
     ),
   );
-  Widget _thumb(String type, {double size = 34}) {
+  String _productImage(String name) =>
+      _database.products
+          .where((product) => product.name == name)
+          .firstOrNull
+          ?.imageUrl ??
+      '';
+
+  Widget _thumb(String type, {double size = 34, String imageUrl = ''}) {
     final c = type == '판매'
         ? _blue
         : type == '반품 승인'
@@ -543,6 +559,9 @@ class _WorkHistoryPageState extends State<WorkHistoryPage> {
         : type == '재고 조정'
         ? const Color(0xFF9566D8)
         : const Color(0xFF25A77A);
+    if (imageUrl.isNotEmpty) {
+      return ProductImage(imageUrl: imageUrl, width: size, height: size);
+    }
     return Container(
       width: size,
       height: size,

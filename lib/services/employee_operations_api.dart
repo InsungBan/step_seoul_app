@@ -19,34 +19,16 @@ class EmployeeOperationsApi {
 
   Future<Map<String, dynamic>> readState() async {
     final response = await _client
-        .get(_stateUri, headers: const {'Accept': 'application/json'})
-        .timeout(const Duration(seconds: 8));
-    if (response.statusCode != 200) {
-      throw Exception(
-        'API state read failed (' + response.statusCode.toString() + ')',
-      );
-    }
-    final body =
-        jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
-    final savedState = body['state'];
-    if (savedState != null) return Map<String, dynamic>.from(savedState as Map);
-
-    final sourceResponse = await _client
         .get(_mysqlSourceUri, headers: const {'Accept': 'application/json'})
         .timeout(const Duration(seconds: 15));
-    if (sourceResponse.statusCode != 200) {
+    if (response.statusCode != 200) {
       throw Exception(
-        'MySQL source read failed (' +
-            sourceResponse.statusCode.toString() +
-            ')',
+        'MySQL source read failed (' + response.statusCode.toString() + ')',
       );
     }
     final source =
-        jsonDecode(utf8.decode(sourceResponse.bodyBytes))
-            as Map<String, dynamic>;
-    final initialState = _buildStateFromMysql(source);
-    await writeState(initialState);
-    return initialState;
+        jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+    return _buildStateFromMysql(source);
   }
 
   Future<void> writeState(Map<String, dynamic> state) async {
@@ -62,6 +44,44 @@ class EmployeeOperationsApi {
         'API state save failed (' + response.statusCode.toString() + ')',
       );
     }
+  }
+
+  String _shoeImageValue(Map<String, dynamic> row) {
+    final known = _value(row, 'shoe_image_url', 'shoe_image', 'image_url');
+    if (known.isNotEmpty) return known;
+    for (final entry in row.entries) {
+      final key = entry.key.toLowerCase();
+      final value = entry.value?.toString().trim() ?? '';
+      if ((key.contains('image') || key.contains('img')) && value.isNotEmpty) {
+        return value;
+      }
+    }
+    return '';
+  }
+
+  String _resolveImageUrl(String rawValue) {
+    final raw = rawValue.trim();
+    if (raw.isEmpty) return '';
+    if (raw.startsWith('//')) return 'https:' + raw;
+    final normalized = raw.startsWith('www.') ? 'https://' + raw : raw;
+    final parsed = Uri.tryParse(normalized);
+    if (parsed == null) return '';
+    final base = Uri.parse(ApiConfig.baseUrl);
+    if (parsed.hasScheme) {
+      if (parsed.scheme != 'http' && parsed.scheme != 'https') return '';
+      final host = parsed.host.toLowerCase();
+      if (host == 'localhost' || host == '127.0.0.1' || host == '::1') {
+        return base
+            .replace(
+              path: parsed.path,
+              query: parsed.hasQuery ? parsed.query : null,
+              fragment: parsed.hasFragment ? parsed.fragment : null,
+            )
+            .toString();
+      }
+      return parsed.toString();
+    }
+    return base.resolve(raw.startsWith('/') ? raw : '/$raw').toString();
   }
 
   Map<String, dynamic> _buildStateFromMysql(Map<String, dynamic> source) {
@@ -128,6 +148,7 @@ class EmployeeOperationsApi {
         'option': _value(row, 'shoe_option', 'option', 'size', '-'),
         'code': id,
         'category': brand.isEmpty ? '-' : brand,
+        'imageUrl': _resolveImageUrl(_shoeImageValue(row)),
         'stock': stock,
         'target': target,
         'sold': soldByShoe[id] ?? 0,
@@ -144,6 +165,7 @@ class EmployeeOperationsApi {
     final productIds = shoesById.keys.toSet();
     final orders = <Map<String, dynamic>>[];
     final inboundDates = <String>[];
+    final receiptLogs = <Map<String, dynamic>>[];
     for (final row in shipmentRows) {
       final shipmentId = _value(row, 'shipment_id', 'order_id');
       final shoeId = _value(row, 'shoe_shoe_id', 'shoe_id');
@@ -223,6 +245,33 @@ class EmployeeOperationsApi {
         ),
         'address': '',
       });
+      if (receiveDate != null) {
+        final employeeId = _value(row, 'employee_employee_id', 'employee_id');
+        final product = shoesById[shoeId];
+        final customerName = _personName(user, userId);
+        final receivedQuantity = _intValue(
+          row,
+          'receive_quantity',
+          _intValue(purchase ?? const {}, 'quantity'),
+        );
+        receiptLogs.add({
+          'id': receiptLogs.length + 1,
+          'type': completed ? '고객 수령' : '수령 대기',
+          'message': completed ? '고객 수령 완료' : '상품 수령 대기 등록',
+          'customer': customerName,
+          'product': product == null ? '-' : _productName(product),
+          'option': product == null
+              ? '-'
+              : _value(product, 'shoe_option', 'option', 'size'),
+          'phone': _value(user ?? const {}, 'user_phone', 'phone'),
+          'code': _value(purchase ?? const {}, 'purchase_id', receiveId),
+          'quantity': receivedQuantity,
+          'staff': _personName(employeesById[employeeId], employeeId),
+          'amount': 0,
+          'note': '',
+          'createdAt': receiveDate.toIso8601String(),
+        });
+      }
       pickups.add({
         'id': receiveId,
         'orderId': pickupOrderId,
@@ -292,8 +341,8 @@ class EmployeeOperationsApi {
     }
 
     final allOrders = [...orders, ...pickupOrders, ...returnOrders];
-    final logs = <Map<String, dynamic>>[];
-    var logId = 1;
+    final logs = <Map<String, dynamic>>[...receiptLogs];
+    var logId = receiptLogs.length + 1;
     for (final row in purchaseRows) {
       final shoeId = _value(row, 'shoe_shoe_id', 'shoe_id');
       final userId = _value(row, 'user_user_id', 'user_id');
@@ -339,11 +388,20 @@ class EmployeeOperationsApi {
       final returnId = _value(row, 'return_id', 'id');
       final shoeId = _value(row, 'shoe_shoe_id', 'shoe_id');
       final product = shoesById[shoeId];
+      final matchedPurchase = purchaseRows
+          .where((item) => _value(item, 'purchase_id') == returnId)
+          .firstOrNull;
+      final userId = _value(
+        matchedPurchase ?? const {},
+        'user_user_id',
+        'user_id',
+      );
+      final user = usersById[userId];
       logs.add({
         'id': logId++,
         'type': '반품 요청',
         'message': '반품 요청 접수: ' + returnId,
-        'customer': '-',
+        'customer': _personName(user, userId),
         'product': product == null ? '-' : _productName(product),
         'option': _value(
           product ?? const {},
@@ -352,7 +410,7 @@ class EmployeeOperationsApi {
           'size',
           '-',
         ),
-        'phone': '',
+        'phone': _value(user ?? const {}, 'user_phone', 'phone'),
         'code': returnId,
         'quantity': 1,
         'staff': _personName(
@@ -376,6 +434,26 @@ class EmployeeOperationsApi {
       'returns': returnObjects,
       'inboundReceipts': inboundDates,
       'logs': logs,
+      'employees': employeeRows
+          .map(
+            (row) => {
+              'id': _value(row, 'employee_id'),
+              'name': _value(row, 'employee_name'),
+              'position': _value(row, 'employee_position'),
+              'department': _value(row, 'employee_department'),
+            },
+          )
+          .toList(),
+      'stores': storeRows
+          .map(
+            (row) => {
+              'id': _value(row, 'store_id'),
+              'agencyName': _value(row, 'agency_name'),
+              'districtName': _value(row, 'district_name'),
+              'phone': _value(row, 'phone'),
+            },
+          )
+          .toList(),
     };
   }
 

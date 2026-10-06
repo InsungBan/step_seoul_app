@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:step_seoul_app/services/session_service.dart';
 import 'package:step_seoul_app/view/auth/login.dart';
@@ -7,7 +9,9 @@ import 'package:step_seoul_app/view/employee/return_reception.dart';
 import 'package:step_seoul_app/view/employee/inventory_status.dart';
 import 'package:step_seoul_app/view/employee/work_history.dart';
 import 'package:step_seoul_app/services/work_activity_store.dart';
+import 'package:step_seoul_app/widgets/product_image.dart';
 import 'package:step_seoul_app/services/app_state.dart';
+import 'package:step_seoul_app/services/employee_operations_sync.dart';
 
 const _navy = Color(0xFF14284B),
     _blue = Color(0xFF3268E8),
@@ -24,7 +28,10 @@ class WorkHome extends StatefulWidget {
 
 class _WorkHomeState extends State<WorkHome> {
   int selected = 0;
-  String branch = '강남점';
+  String branch = '';
+  String _employeeId = '';
+  String _preferredStoreId = '';
+  final _database = MockDatabase.instance;
   DateTime selectedDate = DateTime.now().toUtc().add(const Duration(hours: 9));
   bool _isNotificationOpen = false;
   bool _isCalendarOpen = false;
@@ -35,10 +42,55 @@ class _WorkHomeState extends State<WorkHome> {
   void initState() {
     super.initState();
     _activityStore.addListener(_onActivityChange);
+    unawaited(EmployeeOperationsSync.instance.start());
+    _loadEmployeeContext();
   }
 
   void _onActivityChange() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    setState(() {
+      if (branch.isEmpty && _database.stores.isNotEmpty) {
+        branch =
+            _database.stores.any((store) => store['id'] == _preferredStoreId)
+            ? _preferredStoreId
+            : _database.stores.first['id'] ?? '';
+        _database.activeStoreId = branch;
+      }
+    });
+  }
+
+  Future<void> _loadEmployeeContext() async {
+    final session = await SessionService.instance.readSession();
+    if (session == null || session.role != UserRole.employee) return;
+    final savedStoreId = await SessionService.instance.readSelectedStoreId(
+      session.userId,
+    );
+    if (!mounted) return;
+    setState(() {
+      _employeeId = session.userId;
+      _preferredStoreId = savedStoreId ?? '';
+      _database.activeEmployeeId = session.userId;
+      final validSavedStore = _database.stores.any(
+        (store) => store['id'] == savedStoreId,
+      );
+      branch = validSavedStore
+          ? savedStoreId!
+          : _database.stores.firstOrNull?['id'] ?? '';
+      _database.activeStoreId = branch;
+    });
+  }
+
+  Future<void> _selectStore(String storeId) async {
+    setState(() {
+      branch = storeId;
+      _database.activeStoreId = storeId;
+    });
+    if (_employeeId.isNotEmpty) {
+      await SessionService.instance.saveSelectedStoreId(
+        userId: _employeeId,
+        storeId: storeId,
+      );
+    }
   }
 
   @override
@@ -246,13 +298,23 @@ class _WorkHomeState extends State<WorkHome> {
               backgroundColor: Color(0xFFEAF0FB),
               child: Icon(Icons.person, color: _blue),
             ),
-            title: const Text(
-              '김직원',
-              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
+            title: Text(
+              _database.employeeName(_employeeId).isEmpty
+                  ? '-'
+                  : _database.employeeName(_employeeId),
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
             ),
-            subtitle: const Text(
-              '강남 대리점 · 직원',
-              style: TextStyle(fontSize: 10, color: _muted),
+            subtitle: Text(
+              [
+                    _database.storeName(branch),
+                    _database.employeePosition(_employeeId),
+                  ].where((value) => value.isNotEmpty).join(' · ').isEmpty
+                  ? '-'
+                  : [
+                      _database.storeName(branch),
+                      _database.employeePosition(_employeeId),
+                    ].where((value) => value.isNotEmpty).join(' · '),
+              style: const TextStyle(fontSize: 10, color: _muted),
             ),
             trailing: IconButton(
               onPressed: logout,
@@ -273,7 +335,10 @@ class _WorkHomeState extends State<WorkHome> {
         if (!wide) const SizedBox(width: 9),
         Expanded(
           child: Text(
-            branch.replaceAll('점', '') + ' 대리점 ' + menus[selected].$1,
+            (_database.storeName(branch).isEmpty
+                    ? ''
+                    : _database.storeName(branch) + ' ') +
+                menus[selected].$1,
             style: TextStyle(
               color: _navy,
               fontSize: wide ? 18 : 14,
@@ -291,14 +356,21 @@ class _WorkHomeState extends State<WorkHome> {
           style: TextButton.styleFrom(foregroundColor: _muted),
         ),
         PopupMenuButton<String>(
-          onSelected: (v) => setState(() => branch = v),
-          itemBuilder: (_) => [
-            '강남점',
-            '홍대점',
-            '성수점',
-          ].map((v) => PopupMenuItem(value: v, child: Text(v))).toList(),
+          onSelected: _selectStore,
+          itemBuilder: (_) => _database.stores.map((store) {
+            final id = store['id'] ?? '';
+            return PopupMenuItem(
+              value: id,
+              child: Text(_database.storeName(id)),
+            );
+          }).toList(),
           child: Chip(
-            label: Text(branch, style: const TextStyle(fontSize: 11)),
+            label: Text(
+              _database.storeName(branch).isEmpty
+                  ? '-'
+                  : _database.storeName(branch),
+              style: const TextStyle(fontSize: 11),
+            ),
             avatar: const Icon(Icons.place_outlined, size: 15),
           ),
         ),
@@ -353,9 +425,11 @@ class _WorkHomeState extends State<WorkHome> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '안녕하세요, 김직원님 👋',
-            style: TextStyle(
+          Text(
+            _database.employeeName(_employeeId).isEmpty
+                ? '직원 업무 현황'
+                : '안녕하세요, ' + _database.employeeName(_employeeId) + '님 👋',
+            style: const TextStyle(
               color: _navy,
               fontSize: 23,
               fontWeight: FontWeight.w900,
@@ -1078,7 +1152,7 @@ class _OrderDialogState extends State<_OrderDialog> {
   bool result = false;
   MockOrder? matchedOrder;
   final hints = [
-    '주문번호를 입력하세요. (예: SPO-250926-1042)',
+    '주문번호를 입력하세요.',
     '고객명을 입력하세요. (예: 홍길동)',
     '연락처를 입력하세요. (예: 010-1234-5678)',
   ];
@@ -1273,13 +1347,27 @@ class _OrderResult extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            product.name,
-            style: const TextStyle(fontWeight: FontWeight.w900),
-          ),
-          Text(
-            product.option,
-            style: const TextStyle(color: _muted, fontSize: 11),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ProductImage(imageUrl: product.imageUrl, width: 66, height: 66),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      product.name,
+                      style: const TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                    Text(
+                      product.option,
+                      style: const TextStyle(color: _muted, fontSize: 11),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 14),
           Wrap(

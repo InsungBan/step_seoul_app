@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:step_seoul_app/services/work_activity_store.dart';
+import 'package:step_seoul_app/widgets/product_image.dart';
 
 const navy = Color(0xFF14284B),
     blue = Color(0xFF3268E8),
@@ -67,79 +68,76 @@ class _DeliveryInboundPageState extends State<DeliveryInboundPage> {
     final wide = MediaQuery.sizeOf(context).width >= 1120;
     return Stack(
       children: [
-        Padding(
-          padding: EdgeInsets.all(wide ? 28 : 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '입고 예정 배송',
-                          style: TextStyle(
-                            color: navy,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
+        SingleChildScrollView(
+          child: Padding(
+            padding: EdgeInsets.all(wide ? 28 : 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '입고 예정 배송',
+                            style: TextStyle(
+                              color: navy,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
+                            ),
                           ),
-                        ),
-                        SizedBox(height: 6),
-                        Text(
-                          '매장으로 배송 중인 상품과 입고 예정 정보를 확인하세요.',
-                          style: TextStyle(color: muted, fontSize: 12),
-                        ),
-                      ],
+                          SizedBox(height: 6),
+                          Text(
+                            '매장으로 배송 중인 상품과 입고 예정 정보를 확인하세요.',
+                            style: TextStyle(color: muted, fontSize: 12),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  ElevatedButton.icon(
-                    onPressed: openInbound,
-                    icon: const Icon(Icons.add_task, size: 17),
-                    label: const Text('입고 처리'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 18),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  _Summary(
-                    '오늘 도착 예정',
-                    _database.todayExpectedOrders.toString(),
-                    Icons.event_available,
-                    blue,
-                  ),
-                  _Summary(
-                    '배송 중',
-                    _database.inTransitCount.toString(),
-                    Icons.local_shipping,
-                    Color(0xFFF39A39),
-                  ),
-                  _Summary(
-                    '도착 완료',
-                    _database.arrivedTodayCount.toString(),
-                    Icons.task_alt,
-                    Color(0xFF25A77A),
-                  ),
-                  _Summary(
-                    '지연 건수',
-                    _database.delayedCount.toString(),
-                    Icons.warning_amber,
-                    Color(0xFFE15D66),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 18),
-              Expanded(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [Expanded(child: listPanel())],
+                    ElevatedButton.icon(
+                      onPressed: openInbound,
+                      icon: const Icon(Icons.add_task, size: 17),
+                      label: const Text('입고 처리'),
+                    ),
+                  ],
                 ),
-              ),
-            ],
+                const SizedBox(height: 18),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: [
+                    _Summary(
+                      '오늘 도착 예정',
+                      _database.todayExpectedOrders.toString(),
+                      Icons.event_available,
+                      blue,
+                    ),
+                    _Summary(
+                      '배송 중',
+                      _database.inTransitCount.toString(),
+                      Icons.local_shipping,
+                      Color(0xFFF39A39),
+                    ),
+                    _Summary(
+                      '도착 완료',
+                      _database.arrivedTodayCount.toString(),
+                      Icons.task_alt,
+                      Color(0xFF25A77A),
+                    ),
+                    _Summary(
+                      '지연 건수',
+                      _database.delayedCount.toString(),
+                      Icons.warning_amber,
+                      Color(0xFFE15D66),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                listPanel(),
+              ],
+            ),
           ),
         ),
         if (wide && isDetailOpen && selectedItem != null)
@@ -200,39 +198,50 @@ class _DeliveryInboundPageState extends State<DeliveryInboundPage> {
           ),
         ),
         const Divider(height: 1),
-        Expanded(
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: DataTable(
-              columnSpacing: 20,
-              columns: const [
-                DataColumn(label: Text('주문/배송 코드')),
-                DataColumn(label: Text('상품 정보')),
-                DataColumn(label: Text('수량')),
-                DataColumn(label: Text('현재 배송 상태')),
-                DataColumn(label: Text('예상 도착시간')),
-                DataColumn(label: Text('작업')),
-              ],
-              rows: filtered
-                  .map(
-                    (item) => DataRow(
-                      cells: [
-                        DataCell(Text(item.code)),
-                        DataCell(Text(item.name + ' · ' + item.option)),
-                        DataCell(Text(item.qty.toString() + '개')),
-                        DataCell(Text(item.status)),
-                        DataCell(Text(item.arrival)),
-                        DataCell(
-                          TextButton(
-                            onPressed: () => showDetail(item),
-                            child: const Text('배송위치 상세보기'),
-                          ),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: DataTable(
+            columnSpacing: 20,
+            columns: const [
+              DataColumn(label: Text('주문/배송 코드')),
+              DataColumn(label: Text('상품 정보')),
+              DataColumn(label: Text('수량')),
+              DataColumn(label: Text('현재 배송 상태')),
+              DataColumn(label: Text('예상 도착시간')),
+              DataColumn(label: Text('작업')),
+            ],
+            rows: filtered
+                .map(
+                  (item) => DataRow(
+                    cells: [
+                      DataCell(Text(item.code)),
+                      DataCell(
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ProductImage(
+                              imageUrl: item.imageUrl,
+                              width: 42,
+                              height: 42,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(item.name + ' · ' + item.option),
+                          ],
                         ),
-                      ],
-                    ),
-                  )
-                  .toList(),
-            ),
+                      ),
+                      DataCell(Text(item.qty.toString() + '개')),
+                      DataCell(Text(item.status)),
+                      DataCell(Text(item.arrival)),
+                      DataCell(
+                        TextButton(
+                          onPressed: () => showDetail(item),
+                          child: const Text('배송위치 상세보기'),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+                .toList(),
           ),
         ),
       ],
@@ -305,6 +314,8 @@ class _DeliveryInboundPageState extends State<DeliveryInboundPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                ProductImage(imageUrl: x.imageUrl, width: 84, height: 84),
+                const SizedBox(height: 10),
                 Text(
                   x.code,
                   style: const TextStyle(color: muted, fontSize: 10),
@@ -415,6 +426,7 @@ class _Delivery {
     required this.id,
     required this.code,
     required this.name,
+    required this.imageUrl,
     required this.option,
     required this.qty,
     required this.status,
@@ -433,13 +445,14 @@ class _Delivery {
       id: order.id,
       code: order.orderCode,
       name: product.name,
+      imageUrl: product.imageUrl,
       option: product.option,
       qty: order.quantity,
       status: deliveryStatusLabel(order.status),
       arrival: arrival,
     );
   }
-  final String id, code, name, option, status, arrival;
+  final String id, code, name, imageUrl, option, status, arrival;
   final int qty;
 }
 
@@ -648,10 +661,12 @@ class _InboundDialog extends StatefulWidget {
 }
 
 class _InboundDialogState extends State<_InboundDialog> {
-  final actual = TextEditingController(text: '24'),
-      damaged = TextEditingController(text: '0'),
-      memo = TextEditingController();
-  String store = '강남점', when = '지금';
+  late final actual = TextEditingController(
+    text: widget.item.qty > 0 ? widget.item.qty.toString() : '',
+  );
+  final damaged = TextEditingController();
+  final memo = TextEditingController();
+  String store = '';
   @override
   void dispose() {
     actual.dispose();
@@ -679,9 +694,9 @@ class _InboundDialogState extends State<_InboundDialog> {
               widget.item.name + ' · ' + widget.item.option,
               style: const TextStyle(fontWeight: FontWeight.w800),
             ),
-            const Text(
-              '예상 수량 24개',
-              style: TextStyle(color: muted, fontSize: 11),
+            Text(
+              '예상 수량 ' + widget.item.qty.toString() + '개',
+              style: const TextStyle(color: muted, fontSize: 11),
             ),
             Row(
               children: [
@@ -693,19 +708,42 @@ class _InboundDialogState extends State<_InboundDialog> {
             Row(
               children: [
                 Expanded(
-                  child: _choice('입고 매장', store, [
-                    '강남점',
-                    '홍대점',
-                    '성수점',
-                  ], (v) => setState(() => store = v)),
+                  child: Builder(
+                    builder: (context) {
+                      final database = MockDatabase.instance;
+                      final options = database.stores
+                          .map((item) => database.storeName(item['id'] ?? ''))
+                          .where((name) => name.isNotEmpty)
+                          .toSet()
+                          .toList();
+                      final selected = options.contains(store)
+                          ? store
+                          : options.firstOrNull ?? '';
+                      if (options.isEmpty) {
+                        return const TextField(
+                          enabled: false,
+                          decoration: InputDecoration(
+                            labelText: '입고 매장',
+                            hintText: '매장 데이터 없음',
+                          ),
+                        );
+                      }
+                      return _choice(
+                        '입고 매장',
+                        selected,
+                        options,
+                        (value) => setState(() => store = value),
+                      );
+                    },
+                  ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: _choice('입고 일시', when, [
-                    '지금',
-                    '오늘 15:00',
-                    '오늘 16:00',
-                  ], (v) => setState(() => when = v)),
+                  child: Text(
+                    '입고 시각 ' +
+                        DateTime.now().toLocal().toString().substring(0, 16),
+                    style: const TextStyle(color: muted, fontSize: 11),
+                  ),
                 ),
               ],
             ),

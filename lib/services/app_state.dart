@@ -68,8 +68,9 @@ class MockProduct {
     required this.safetyStock,
     required this.status,
     required this.lastInbound,
+    this.imageUrl = '',
   });
-  final String id, name, option, code, category;
+  final String id, name, option, code, category, imageUrl;
   int stock;
   final int target, safetyStock;
   int sold, todaySold;
@@ -190,12 +191,21 @@ class MockDatabase extends ChangeNotifier {
   }
   static final instance = MockDatabase._();
 
+  String activeEmployeeId = '';
+  String get activeEmployeeName => employeeName(activeEmployeeId);
+  String get currentStaffName =>
+      activeEmployeeName.isEmpty ? '-' : activeEmployeeName;
+  String get activeStoreName => storeName(activeStoreId);
+  String activeStoreId = '';
+
   late List<MockProduct> products;
   late List<MockOrder> orders;
   late List<MockPickup> pickups;
   late List<MockReturn> returns;
   late List<DateTime> inboundReceipts;
   late List<WorkActivity> logs;
+  late List<Map<String, String>> employees;
+  late List<Map<String, String>> stores;
   int _nextLogId = 1;
   int _unread = 0;
 
@@ -289,6 +299,20 @@ class MockDatabase extends ChangeNotifier {
       )
       .length;
   int get unreadCount => _unread;
+  String employeeName(String id) =>
+      employees.where((item) => item['id'] == id).firstOrNull?['name'] ?? '';
+  String employeePosition(String id) =>
+      employees.where((item) => item['id'] == id).firstOrNull?['position'] ??
+      '';
+  String employeeDepartment(String id) =>
+      employees.where((item) => item['id'] == id).firstOrNull?['department'] ??
+      '';
+  String storeName(String id) {
+    final item = stores.where((store) => store['id'] == id).firstOrNull;
+    return item?['agencyName']?.isNotEmpty == true
+        ? item!['agencyName']!
+        : item?['districtName'] ?? '';
+  }
 
   Map<String, dynamic> exportState() => {
     'schemaVersion': 2,
@@ -308,6 +332,7 @@ class MockDatabase extends ChangeNotifier {
             'safetyStock': p.safetyStock,
             'status': p.status.name,
             'lastInbound': p.lastInbound?.toIso8601String(),
+            'imageUrl': p.imageUrl,
           },
         )
         .toList(),
@@ -360,6 +385,8 @@ class MockDatabase extends ChangeNotifier {
     'inboundReceipts': inboundReceipts
         .map((date) => date.toIso8601String())
         .toList(),
+    'employees': employees,
+    'stores': stores,
     'logs': logs
         .map(
           (item) => {
@@ -422,6 +449,7 @@ class MockDatabase extends ChangeNotifier {
             lastInbound: row['lastInbound'] == null
                 ? null
                 : DateTime.parse(row['lastInbound'] as String),
+            imageUrl: row['imageUrl'] as String? ?? '',
           ),
         )
         .toList();
@@ -476,6 +504,12 @@ class MockDatabase extends ChangeNotifier {
     inboundReceipts = (state['inboundReceipts'] as List<dynamic>)
         .map((item) => DateTime.parse(item as String))
         .toList();
+    employees = (state['employees'] as List<dynamic>? ?? const [])
+        .map((row) => Map<String, String>.from(row as Map))
+        .toList();
+    stores = (state['stores'] as List<dynamic>? ?? const [])
+        .map((row) => Map<String, String>.from(row as Map))
+        .toList();
     logs = rows('logs')
         .map(
           (row) => WorkActivity(
@@ -509,6 +543,10 @@ class MockDatabase extends ChangeNotifier {
     returns = <MockReturn>[];
     inboundReceipts = <DateTime>[];
     logs = <WorkActivity>[];
+    employees = <Map<String, String>>[];
+    stores = <Map<String, String>>[];
+    activeEmployeeId = '';
+    activeStoreId = '';
     _nextLogId = 1;
     _unread = 0;
     if (notify) notifyListeners();
@@ -588,29 +626,32 @@ class MockDatabase extends ChangeNotifier {
     (p) => p.id == order.productId,
     orElse: () => _emptyProduct,
   );
-  void completePickup(String id, {String staff = '김직원'}) {
-    final p = pickups.firstWhere((x) => x.id == id);
-    if (p.status == PickupStatus.completed) return;
-    p.status = PickupStatus.completed;
-    p.completedAt = DateTime.now();
-    final o = orderForPickup(p);
-    final product = productForOrder(o);
+  void completePickup(String id, {String? staff}) {
+    final actor = staff?.isNotEmpty == true
+        ? staff!
+        : (activeEmployeeName.isEmpty ? '-' : activeEmployeeName);
+    final pickup = pickups.firstWhere((item) => item.id == id);
+    if (pickup.status == PickupStatus.completed) return;
+    pickup.status = PickupStatus.completed;
+    pickup.completedAt = DateTime.now();
+    final order = orderForPickup(pickup);
+    final product = productForOrder(order);
     record(
       type: '고객 수령',
-      message:
-          '[' + staff + '] 직원님이 [' + o.customer + '] 고객의 상품 수령 처리를 완료하였습니다.',
-      customer: o.customer,
+      message: '[$actor] 직원님이 [${order.customer}] 고객의 상품 수령 처리를 완료하였습니다.',
+      customer: order.customer,
       product: product.name,
       option: product.option,
-      phone: o.phone,
-      code: o.orderCode,
-      quantity: p.quantity,
-      staff: staff + ' (강남 대리점 · 사원)',
-      note: '고객 본인 확인 후 상품을 전달했습니다.',
+      phone: order.phone,
+      code: order.orderCode,
+      quantity: pickup.quantity,
+      staff: actor,
+      note: '',
     );
   }
 
   void sendPickupNotice(String id, {String type = '안내 발송'}) {
+    final actor = currentStaffName;
     final p = pickups.firstWhere((x) => x.id == id);
     p.contacted = true;
     if (p.status == PickupStatus.contactNeeded) p.status = PickupStatus.waiting;
@@ -618,44 +659,48 @@ class MockDatabase extends ChangeNotifier {
     final product = productForOrder(o);
     record(
       type: type,
-      message: '[김직원] 직원님이 [' + o.customer + '] 고객에게 수령 안내를 발송하였습니다.',
+      message: '[' + actor + '] 직원님이 [' + o.customer + '] 고객에게 수령 안내를 발송하였습니다.',
       customer: o.customer,
       product: product.name,
       option: product.option,
       phone: o.phone,
       code: o.orderCode,
       quantity: p.quantity,
-      staff: '김직원 (강남 대리점 · 사원)',
+      staff: actor,
       note: '고객 수령 안내 메시지를 발송했습니다.',
     );
   }
 
-  void approveReturn(String id, {String staff = '김직원'}) {
-    final r = returns.firstWhere((x) => x.id == id);
-    if (r.status != ReturnStatus.inspectWaiting &&
-        r.status != ReturnStatus.requested)
+  void approveReturn(String id, {String? staff}) {
+    final actor = staff?.isNotEmpty == true
+        ? staff!
+        : (activeEmployeeName.isEmpty ? '-' : activeEmployeeName);
+    final request = returns.firstWhere((item) => item.id == id);
+    if (request.status != ReturnStatus.inspectWaiting &&
+        request.status != ReturnStatus.requested)
       return;
-    r.status = ReturnStatus.approved;
-    final o = orders.firstWhere(
-      (x) => x.orderCode == r.orderId,
+    request.status = ReturnStatus.approved;
+    final order = orders.firstWhere(
+      (item) => item.orderCode == request.orderId,
       orElse: () => _emptyOrder,
     );
-    final product = productForOrder(o);
+    final product = productForOrder(order);
     record(
       type: '반품 승인',
-      message: '[' + staff + '] 직원님이 [' + o.orderCode + '] 건의 반품 요청을 승인하였습니다.',
-      customer: o.customer,
+      message: '[$actor] 직원님이 [${order.orderCode}] 건의 반품 요청을 승인하였습니다.',
+      customer: order.customer,
       product: product.name,
       option: product.option,
-      phone: o.phone,
-      code: o.orderCode,
-      quantity: o.quantity,
-      staff: staff + ' (강남 대리점 · 사원)',
-      note: r.reason,
+      phone: order.phone,
+      code: order.orderCode,
+      quantity: order.quantity,
+      staff: actor,
+      note: request.reason,
     );
   }
 
   void sendReturnNotice(String id, {String type = '안내 발송'}) {
+    final actor = currentStaffName;
     final request = returns.firstWhere((item) => item.id == id);
     request.contacted = true;
     final pickup = pickups
@@ -673,99 +718,96 @@ class MockDatabase extends ChangeNotifier {
     final product = productForOrder(order);
     record(
       type: type,
-      message: '[김직원] 직원님이 [' + order.customer + '] 고객에게 반품 관련 안내를 발송하였습니다.',
+      message:
+          '[' +
+          actor +
+          '] 직원님이 [' +
+          order.customer +
+          '] 고객에게 반품 관련 안내를 발송하였습니다.',
       customer: order.customer,
       product: product.name,
       option: product.option,
       phone: order.phone,
       code: order.orderCode,
       quantity: order.quantity,
-      staff: '김직원 (강남 대리점 · 사원)',
+      staff: actor,
       note: '반품 요청 처리 안내 메시지를 발송했습니다.',
     );
   }
 
-  void requestReturnRecall(String id, {String staff = '김직원'}) {
-    final r = returns.firstWhere((x) => x.id == id);
-    if (r.status != ReturnStatus.approved) return;
-    r.status = ReturnStatus.recallRequested;
-    r.recallRequested = true;
-    final o = orders.firstWhere(
-      (x) => x.orderCode == r.orderId,
+  void requestReturnRecall(String id, {String? staff}) {
+    final actor = staff?.isNotEmpty == true
+        ? staff!
+        : (activeEmployeeName.isEmpty ? '-' : activeEmployeeName);
+    final request = returns.firstWhere((item) => item.id == id);
+    if (request.status != ReturnStatus.approved) return;
+    request.status = ReturnStatus.recallRequested;
+    request.recallRequested = true;
+    final order = orders.firstWhere(
+      (item) => item.orderCode == request.orderId,
       orElse: () => _emptyOrder,
     );
-    final product = productForOrder(o);
+    final product = productForOrder(order);
     record(
       type: '본사 회수 요청',
-      message:
-          '[' + staff + '] 직원님이 [' + o.orderCode + '] 건의 본사 회수 요청을 완료하였습니다.',
-      customer: o.customer,
+      message: '[$actor] 직원님이 [${order.orderCode}] 건의 본사 회수 요청을 완료하였습니다.',
+      customer: order.customer,
       product: product.name,
       option: product.option,
-      phone: o.phone,
-      code: o.orderCode,
-      quantity: o.quantity,
-      staff: staff + ' (강남 대리점 · 사원)',
-      note: '본사 회수 요청을 등록했습니다.',
+      phone: order.phone,
+      code: order.orderCode,
+      quantity: order.quantity,
+      staff: actor,
+      note: '',
     );
   }
 
-  void completeDelivery(String orderId) {
+  void completeDelivery(String orderId, {String? staff}) {
+    final actor = staff?.isNotEmpty == true
+        ? staff!
+        : (activeEmployeeName.isEmpty ? '-' : activeEmployeeName);
     final order = orders.firstWhere((item) => item.id == orderId);
     if (order.status == DeliveryStatus.deliveredCompleted) return;
-    order.status = DeliveryStatus.deliveredCompleted;
     final product = productForOrder(order);
     if (product.id.isEmpty) return;
+    order.status = DeliveryStatus.deliveredCompleted;
     product.stock += order.quantity;
     product.recalculateStatus();
     inboundReceipts.insert(0, DateTime.now());
     record(
       type: '재고 입고',
       message:
-          '[김직원] 직원님이 [' +
-          product.name +
-          '] 상품 ' +
-          order.quantity.toString() +
-          '개를 매장 입고 처리하였습니다.',
+          '[$actor] 직원님이 [${product.name}] 상품 ${order.quantity}개를 입고 처리하였습니다.',
       customer: order.customer,
       product: product.name,
       option: product.option,
       phone: order.phone,
       code: order.orderCode,
       quantity: order.quantity,
-      staff: '김직원 (강남 대리점 · 사원)',
-      note: '배송 상품 검수를 완료하고 매장 재고로 반영했습니다.',
+      staff: actor,
+      note: '',
     );
   }
 
-  void receiveInventory(
-    String productId,
-    int quantity, {
-    String staff = '김직원',
-  }) {
-    final p = products.firstWhere((x) => x.id == productId);
-    p.stock += quantity;
-    p.sold += 0;
-    p.recalculateStatus();
+  void receiveInventory(String productId, int quantity, {String? staff}) {
+    final actor = staff?.isNotEmpty == true
+        ? staff!
+        : (activeEmployeeName.isEmpty ? '-' : activeEmployeeName);
+    final product = products.firstWhere((item) => item.id == productId);
+    product.stock += quantity;
+    product.recalculateStatus();
     inboundReceipts.insert(0, DateTime.now());
     record(
       type: '재고 입고',
-      message:
-          '[' +
-          staff +
-          '] 직원님이 [' +
-          p.name +
-          '] 제품의 재고 ' +
-          quantity.toString() +
-          '개를 입고 처리하였습니다.',
-      customer: '매장 재고',
-      product: p.name,
-      option: p.option,
+      message: '[$actor] 직원님이 [${product.name}] 제품의 재고 $quantity개를 입고 처리하였습니다.',
+      customer: '',
+      product: product.name,
+      option: product.option,
       phone: '',
-      code: p.code,
+      code: product.code,
       quantity: quantity,
-      staff: staff + ' (강남 대리점 · 사원)',
-      note: '입고 수량 ' + quantity.toString() + '개를 등록했습니다.',
+      staff: actor,
+      note: '',
     );
   }
 }
