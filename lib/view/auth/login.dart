@@ -41,18 +41,16 @@ class _LoginState extends State<Login> {
         id: _idController.text.trim(),
         password: _passwordController.text,
       );
-      if (_staySignedIn) {
-        await SessionService.instance.saveSession(
-          userId: _idController.text.trim(),
-          role: switch (destination) {
-            _LoginDestination.customer => UserRole.customer,
-            _LoginDestination.employee => UserRole.employee,
-            _LoginDestination.executive => UserRole.executive,
-          },
-        );
-      } else {
-        await SessionService.instance.clearSession();
-      }
+      final role = switch (destination) {
+        _LoginDestination.customer => UserRole.customer,
+        _LoginDestination.employee => UserRole.employee,
+        _LoginDestination.executive => UserRole.executive,
+      };
+      await SessionService.instance.saveSession(
+        userId: _idController.text.trim(),
+        role: role,
+        persist: _staySignedIn,
+      );
       if (!mounted) return;
       switch (destination) {
         case _LoginDestination.customer:

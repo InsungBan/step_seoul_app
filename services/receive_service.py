@@ -1,7 +1,53 @@
+import re
+
+import pymysql
 from fastapi import HTTPException
+
+from db.database import db
 
 from services._database import execute
 
+
+def ensure_pickup_link_columns():
+    """Preserve the exact product and purchase for employee-created pickups."""
+    conn = None
+    try:
+        conn = db()
+        tick = chr(96)
+        columns = {
+            "receive_shoe_id": "VARCHAR(45) NULL",
+            "receive_purchase_id": "VARCHAR(45) NULL",
+        }
+        with conn.cursor() as cursor:
+            for name, definition in columns.items():
+                cursor.execute(
+                    f"SHOW COLUMNS FROM {tick}receive{tick} WHERE Field = %s",
+                    (name,),
+                )
+                column = cursor.fetchone()
+                if column is None:
+                    cursor.execute(
+                        f"ALTER TABLE {tick}receive{tick} ADD COLUMN {tick}{name}{tick} {definition}"
+                    )
+                    continue
+
+                # Shoe IDs are VARCHAR(45) in the product table. Earlier app
+                # versions created receive_shoe_id as VARCHAR(20), which made
+                # inbound fail for longer IDs when inserting the pickup row.
+                current_type = str(column[1]).strip().lower()
+                length_match = re.fullmatch(r"(?:var)?char\((\d+)\)", current_type)
+                if length_match and int(length_match.group(1)) < 45:
+                    cursor.execute(
+                        f"ALTER TABLE {tick}receive{tick} MODIFY COLUMN {tick}{name}{tick} {definition}"
+                    )
+        conn.commit()
+    except pymysql.MySQLError as error:
+        if conn is not None:
+            conn.rollback()
+        raise RuntimeError("Could not prepare pickup link columns") from error
+    finally:
+        if conn is not None:
+            conn.close()
 
 def create_receive(
     store_store_id: str,

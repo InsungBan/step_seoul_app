@@ -8,7 +8,7 @@ import 'package:step_seoul_app/routes/app_routes.dart';
 
 const _apiBaseUrl = String.fromEnvironment(
   'API_BASE_URL',
-  defaultValue: 'http://192.168.10.40:8000',
+  defaultValue: 'http://10.0.2.2:8000',
 );
 const _blue = Color(0xFF2F67E8);
 const _navy = Color(0xFF102455);

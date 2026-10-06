@@ -49,7 +49,9 @@ class _CartPageState extends State<CartPage> {
     _reload();
   }
 
-  void _reload() => _future = _service.loadCart();
+  void _reload() {
+    _future = _service.loadCart();
+  }
 
   Future<void> _mutate(
     Future<void> Function(CustomerCartData data) action,

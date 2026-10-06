@@ -8,6 +8,7 @@ from services.employee_service import read_employee
 from services.purchase_service import read_purchase
 from services.receive_service import read_receive
 from services.return_record_service import read_return_record
+from services.refund_service import read_refund
 from services.shipment_service import read_shipment
 from services.shoe_service import read_shoe
 from services.store_service import read_store
@@ -42,6 +43,7 @@ def get_mysql_source():
         "shipments": read_shipment()["result"],
         "receipts": read_receive()["result"],
         "returns": read_return_record()["result"],
+        "refunds": read_refund()["result"],
         "purchases": read_purchase()["result"],
         "users": [
             {key: row.get(key) for key in ("user_id", "user_name", "user_phone")}

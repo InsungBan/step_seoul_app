@@ -31,6 +31,71 @@ class EmployeeOperationsApi {
     return _buildStateFromMysql(source);
   }
 
+  Future<List<Map<String, dynamic>>> getInTransitShipments() async {
+    final response = await _client
+        .get(
+          Uri.parse(ApiConfig.baseUrl + '/shipment/select/in-transit'),
+          headers: const {'Accept': 'application/json'},
+        )
+        .timeout(const Duration(seconds: 15));
+    if (response.statusCode != 200) {
+      throw Exception(
+        'Shipment read failed (' + response.statusCode.toString() + ')',
+      );
+    }
+    final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+    if (decoded is! Map<String, dynamic> || decoded['result'] is! List) {
+      throw const FormatException('Invalid shipment response');
+    }
+    return (decoded['result'] as List)
+        .whereType<Map>()
+        .map((row) => Map<String, dynamic>.from(row))
+        .toList();
+  }
+
+  Future<void> updateShipmentAsDelivered({
+    required String shoeId,
+    required String employeeId,
+    required String shipmentId,
+    required String storeId,
+    required String pickupUserId,
+    required String pickupPaymentId,
+    required String pickupPurchaseId,
+    required String receiveId,
+    required int receiveQuantity,
+  }) async {
+    final segments = [
+      shoeId,
+      employeeId,
+      shipmentId,
+      storeId,
+    ].map(Uri.encodeComponent).join('/');
+    final request =
+        http.MultipartRequest(
+            'PUT',
+            Uri.parse(ApiConfig.baseUrl + '/shipment/update/' + segments),
+          )
+          ..fields['delivery_status'] = '배송완료'
+          ..fields['delivery_quantity'] = receiveQuantity.toString()
+          ..fields['pickup_user_id'] = pickupUserId
+          ..fields['pickup_payment_id'] = pickupPaymentId
+          ..fields['pickup_purchase_id'] = pickupPurchaseId
+          ..fields['receive_id'] = receiveId
+          ..fields['receive_quantity'] = receiveQuantity.toString();
+    final streamed = await _client
+        .send(request)
+        .timeout(const Duration(seconds: 15));
+    final response = await http.Response.fromStream(streamed);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception(
+        'Shipment update failed (' +
+            response.statusCode.toString() +
+            '): ' +
+            utf8.decode(response.bodyBytes),
+      );
+    }
+  }
+
   Future<void> writeState(Map<String, dynamic> state) async {
     final response = await _client
         .put(
@@ -89,6 +154,7 @@ class EmployeeOperationsApi {
     final shipmentRows = _rows(source, 'shipments');
     final receiveRows = _rows(source, 'receipts');
     final returnRows = _rows(source, 'returns');
+    final refundRows = _rows(source, 'refunds');
     final purchaseRows = _rows(source, 'purchases');
     final userRows = _rows(source, 'users');
     final employeeRows = _rows(source, 'employees');
@@ -209,12 +275,32 @@ class EmployeeOperationsApi {
     for (final row in receiveRows) {
       final receiveId = _value(row, 'receive_id', 'id');
       final paymentId = _value(row, 'receive_payment_id', 'payment_id');
-      final purchase = purchasesByPayment[paymentId];
-      final shoeId = _value(row, 'shoe_shoe_id', 'shoe_id').isNotEmpty
-          ? _value(row, 'shoe_shoe_id', 'shoe_id')
+      final rowShoeId = _value(
+        row,
+        'shoe_shoe_id',
+        'shoe_id',
+        _value(row, 'receive_shoe_id'),
+      );
+      final rowPurchaseId = _value(row, 'receive_purchase_id');
+      final rowUserId = _value(row, 'user_user_id', 'user_id');
+      final matchingPurchase = purchaseRows
+          .where(
+            (item) =>
+                (rowPurchaseId.isNotEmpty
+                    ? _value(item, 'purchase_id') == rowPurchaseId
+                    : _value(item, 'payment_id') == paymentId) &&
+                (rowShoeId.isEmpty ||
+                    _value(item, 'shoe_shoe_id', 'shoe_id') == rowShoeId) &&
+                (rowUserId.isEmpty ||
+                    _value(item, 'user_user_id', 'user_id') == rowUserId),
+          )
+          .firstOrNull;
+      final purchase = matchingPurchase ?? purchasesByPayment[paymentId];
+      final shoeId = rowShoeId.isNotEmpty
+          ? rowShoeId
           : _value(purchase ?? const {}, 'shoe_shoe_id', 'shoe_id');
-      final userId = _value(row, 'user_user_id', 'user_id').isNotEmpty
-          ? _value(row, 'user_user_id', 'user_id')
+      final userId = rowUserId.isNotEmpty
+          ? rowUserId
           : _value(purchase ?? const {}, 'user_user_id', 'user_id');
       final user = usersById[userId];
       final receiveDate = _dateValue(
@@ -337,6 +423,95 @@ class EmployeeOperationsApi {
         'inspectionResult': _value(row, 'inspection_result'),
         'recallRequested': _boolValue(row, 'recall_requested'),
         'contacted': _boolValue(row, 'contacted', 'notice_sent', true),
+      });
+    }
+
+    for (final row in refundRows) {
+      final refundId = _value(row, 'refund_id', 'id');
+      if (refundId.isEmpty) continue;
+      final userId = _value(row, 'user_user_id', 'user_id');
+      final user = usersById[userId];
+      var purchaseId = _value(
+        row,
+        'return_order_id',
+        'order_id',
+        'purchase_id',
+      );
+      var shoeId = _value(row, 'return_shoe_id', 'shoe_shoe_id', 'shoe_id');
+      Map<String, dynamic>? matchedPurchase;
+      if (purchaseId.isNotEmpty) {
+        matchedPurchase = purchaseRows
+            .where(
+              (item) =>
+                  _value(item, 'purchase_id') == purchaseId &&
+                  (userId.isEmpty ||
+                      _value(item, 'user_user_id', 'user_id') == userId) &&
+                  (shoeId.isEmpty ||
+                      _value(item, 'shoe_shoe_id', 'shoe_id') == shoeId),
+            )
+            .firstOrNull;
+      }
+      if (matchedPurchase == null && userId.isNotEmpty) {
+        final candidates = purchaseRows
+            .where(
+              (item) =>
+                  _value(item, 'user_user_id', 'user_id') == userId &&
+                  (shoeId.isEmpty ||
+                      _value(item, 'shoe_shoe_id', 'shoe_id') == shoeId),
+            )
+            .toList();
+        if (candidates.isNotEmpty) matchedPurchase = candidates.last;
+      }
+      purchaseId = purchaseId.isNotEmpty
+          ? purchaseId
+          : _value(matchedPurchase ?? const {}, 'purchase_id', 'payment_id');
+      shoeId = shoeId.isNotEmpty
+          ? shoeId
+          : _value(matchedPurchase ?? const {}, 'shoe_shoe_id', 'shoe_id');
+      final orderCode = purchaseId.isEmpty ? refundId : purchaseId;
+      final requestedAt = _dateValue(
+        row,
+        'return_requested_at',
+        'refund_date',
+        'created_at',
+      );
+      final linkedOrderId = 'refund:' + refundId;
+      returnOrders.add({
+        'id': linkedOrderId,
+        'orderCode': orderCode,
+        'customer': _personName(user, userId),
+        'phone': _value(user ?? const {}, 'user_phone', 'phone'),
+        'productId': productIds.contains(shoeId) ? shoeId : '',
+        'orderedAt':
+            (_dateValue(
+                      matchedPurchase ?? const {},
+                      'purchase_date',
+                      'created_at',
+                    ) ??
+                    _epoch)
+                .toIso8601String(),
+        'expectedAt': (requestedAt ?? _epoch).toIso8601String(),
+        'status': 'unknown',
+        'quantity': _intValue(
+          row,
+          'refund_quantity',
+          _intValue(matchedPurchase ?? const {}, 'quantity', 1),
+        ),
+        'address': '',
+      });
+      returnObjects.add({
+        'id': 'refund:' + refundId,
+        'orderId': orderCode,
+        'reason': _value(row, 'refund_reason', 'reason'),
+        'detailReason': _value(row, 'return_detail_reason', 'detail_reason'),
+        'note': '',
+        'status': _returnStatus(
+          _value(row, 'return_status', 'status', 'Requested'),
+        ),
+        'requestedAt': (requestedAt ?? _epoch).toIso8601String(),
+        'inspectionResult': '',
+        'recallRequested': _boolValue(row, 'recall_requested'),
+        'contacted': false,
       });
     }
 
