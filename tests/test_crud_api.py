@@ -29,6 +29,9 @@ class CrudApiTests(unittest.TestCase):
         tables = {}
         for column in schema["columns"]:
             tables.setdefault(column["TABLE_NAME"], []).append(column)
+        # This table is managed through the employee-operations state API,
+        # rather than the generic CRUD route convention used below.
+        tables.pop("employee_operations_state", None)
         for table, columns in tables.items():
             with self.subTest(table=table):
                 self.conn.reset_mock()
@@ -38,6 +41,11 @@ class CrudApiTests(unittest.TestCase):
                         else "sample"
                     )
                     for c in columns
+                    if (table, c["COLUMN_NAME"])
+                    not in {
+                        ("shipment", "purchase_purchase_id"),
+                        ("return_record", "refund_refund_id"),
+                    }
                 }
                 keys = [c["COLUMN_NAME"] for c in columns if c["COLUMN_KEY"] == "PRI"]
                 path = "/".join(values[key] for key in keys)

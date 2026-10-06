@@ -112,7 +112,7 @@ def build_rows(as_of):
             if returned % 3 != 0:
                 rows['refund'].append(dict(user_user_id=user, employee_employee_id=employee, refund_id=ident('rf', i),
                     refund_amount=str(price), refund_quantity='1', refund_reason=['샘플: 사이즈 변경','샘플: 상품 불량','샘플: 색상 변경','샘플: 단순 변심'][returned % 4],
-                    refund_cardnumber=0))
+                    refund_cardnumber=0, return_status='Requested'))
         returned += 1
     return rows
 

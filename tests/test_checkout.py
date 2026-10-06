@@ -39,6 +39,17 @@ class CheckoutTests(unittest.TestCase):
         self.assertIn("`store_store_id`", sql)
         self.assertEqual(params[-1], "store-1")
         self.assertEqual(sql.count("%s"), len(params))
+
+        shipment_calls = [
+            call
+            for call in cursor.execute.call_args_list
+            if "INSERT INTO `shipment`" in call.args[0]
+        ]
+        self.assertEqual(len(shipment_calls), 1)
+        shipment_sql, shipment_params = shipment_calls[0].args
+        self.assertIn("`purchase_purchase_id`", shipment_sql)
+        self.assertEqual(shipment_params[-1], purchase_calls[0].args[1][2])
+        self.assertEqual(shipment_sql.count("%s"), len(shipment_params))
         conn.commit.assert_called_once()
 
 

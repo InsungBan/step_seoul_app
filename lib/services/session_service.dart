@@ -19,6 +19,7 @@ class SessionService {
   static const _branchTable = 'selected_branch';
   Database? _database;
   AppSession? _memorySession;
+  bool _memoryOnly = false;
 
   Future<Database> get _db async {
     if (_database != null) return _database!;
@@ -38,13 +39,16 @@ class SessionService {
   }
 
   Future<AppSession?> readSession() async {
-    if (_memorySession != null) return _memorySession;
+    if (_memoryOnly) return _memorySession;
     final rows = await (await _db).query(
       _table,
       where: 'id = ?',
       whereArgs: [1],
     );
-    if (rows.isEmpty) return null;
+    if (rows.isEmpty) {
+      _memorySession = null;
+      return null;
+    }
     final role = UserRole.values
         .where((item) => item.name == rows.first['role'])
         .firstOrNull;
@@ -56,6 +60,7 @@ class SessionService {
       userId: rows.first['user_id']! as String,
       role: role,
     );
+    _memoryOnly = false;
     return _memorySession;
   }
 
@@ -96,6 +101,7 @@ class SessionService {
     bool persist = true,
   }) async {
     _memorySession = AppSession(userId: userId, role: role);
+    _memoryOnly = !persist;
     if (!persist) {
       await (await _db).delete(_table, where: 'id = ?', whereArgs: [1]);
       return;
@@ -109,6 +115,7 @@ class SessionService {
 
   Future<void> clearSession() async {
     _memorySession = null;
+    _memoryOnly = false;
     final rows = await (await _db).query(
       _table,
       columns: ['user_id'],

@@ -3,6 +3,7 @@ from datetime import datetime
 from fastapi import HTTPException
 
 from services._database import execute
+from services.password_service import hash_password
 
 
 def create_user(
@@ -19,7 +20,7 @@ def create_user(
         "user_id": user_id,
         "user_name": user_name,
         "user_phone": user_phone,
-        "user_pw": user_pw,
+        "user_pw": hash_password(user_pw) if user_pw else None,
         "user_email": user_email,
         "join_date": join_date,
     }
@@ -31,7 +32,18 @@ def create_user(
 
 
 def read_user():
-    return execute("SELECT * FROM `user` ORDER BY `join_date`")
+    return execute(
+        "SELECT `user_id`, `user_name`, `user_phone`, `user_email`, `join_date` "
+        "FROM `user` ORDER BY `join_date`"
+    )
+
+
+def user_exists(user_id: str):
+    rows = execute(
+        "SELECT 1 AS `exists` FROM `user` WHERE `user_id` = %s LIMIT 1",
+        (user_id,),
+    )["result"]
+    return {"result": {"exists": bool(rows)}}
 
 
 def update_user(
@@ -45,7 +57,7 @@ def update_user(
     data = {
         "user_name": user_name,
         "user_phone": user_phone,
-        "user_pw": user_pw,
+        "user_pw": hash_password(user_pw) if user_pw else None,
         "user_email": user_email,
         "join_date": join_date,
     }

@@ -1,8 +1,19 @@
 from fastapi import APIRouter, Form
+from pydantic import BaseModel, Field
 
-from services.authentication_service import create_authentication, read_authentication, update_authentication, delete_authentication
+from services.authentication_service import authenticate_account, create_authentication, read_authentication, update_authentication, delete_authentication
 
 router = APIRouter(prefix="/authentication", tags=["authentication"])
+
+
+class LoginRequest(BaseModel):
+    account_id: str = Field(min_length=1, max_length=20)
+    password: str = Field(min_length=1, max_length=128)
+
+
+@router.post("/login")
+def login(payload: LoginRequest):
+    return authenticate_account(payload.account_id.strip(), payload.password)
 
 
 @router.post("/upload")

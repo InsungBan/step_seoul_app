@@ -2,6 +2,7 @@ from datetime import datetime
 from uuid import uuid4
 
 import pymysql
+import os
 from fastapi import HTTPException
 
 from db.database import db
@@ -35,7 +36,16 @@ def complete_checkout(
             store = cursor.fetchone()
             if store is None:
                 raise HTTPException(status_code=404, detail="Store not found")
-            cursor.execute("SELECT `employee_id` FROM `employee` ORDER BY `employee_id` LIMIT 1")
+            checkout_employee_id = os.getenv("CHECKOUT_EMPLOYEE_ID", "").strip()
+            if not checkout_employee_id:
+                raise HTTPException(
+                    status_code=503,
+                    detail="CHECKOUT_EMPLOYEE_ID is not configured on the API server",
+                )
+            cursor.execute(
+                "SELECT `employee_id` FROM `employee` WHERE `employee_id` = %s LIMIT 1",
+                (checkout_employee_id,),
+            )
             employee = cursor.fetchone()
             if employee is None:
                 raise HTTPException(status_code=422, detail="A store employee is required before checkout")
@@ -89,10 +99,19 @@ def complete_checkout(
                     """
                     INSERT INTO `shipment`
                       (`shoe_shoe_id`, `employee_employee_id`, `shipment_id`,
-                       `delivery_status`, `delivery_quantity`, `store_store_id`)
-                    VALUES (%s, %s, %s, %s, %s, %s)
+                       `delivery_status`, `delivery_quantity`, `store_store_id`,
+                       `purchase_purchase_id`)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
                     """,
-                    (shoe_id, employee_id, shipment_id, "Preparing pickup", quantity, store_id),
+                    (
+                        shoe_id,
+                        employee_id,
+                        shipment_id,
+                        "Preparing pickup",
+                        quantity,
+                        store_id,
+                        order_id,
+                    ),
                 )
                 cursor.execute(
                     "UPDATE `shoe` SET `stock_quantity` = `stock_quantity` - %s WHERE `shoe_id` = %s",
@@ -158,8 +177,9 @@ def read_order_detail(user_id: str, order_id: str):
                 cursor.execute("SELECT * FROM `shoe` WHERE `shoe_id` = %s", (purchase["shoe_shoe_id"],))
                 shoe = cursor.fetchone() or {}
                 cursor.execute(
-                    "SELECT * FROM `shipment` WHERE `shoe_shoe_id` = %s ORDER BY `shipment_id` DESC LIMIT 1",
-                    (purchase["shoe_shoe_id"],),
+                    "SELECT * FROM `shipment` WHERE `purchase_purchase_id` = %s "
+                    "AND `shoe_shoe_id` = %s LIMIT 1",
+                    (purchase.get("purchase_id") or order_id, purchase["shoe_shoe_id"]),
                 )
                 shipment = cursor.fetchone()
                 if shipment:

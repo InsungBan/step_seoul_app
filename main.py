@@ -28,18 +28,14 @@ from routers.user import router as user_router
 from services.shoe_service import ensure_shoe_category_column
 from services.refund_request_service import ensure_refund_request_columns
 from services.receive_service import ensure_pickup_link_columns
+from services.password_service import prepare_password_storage
+from services.shipment_service import ensure_shipment_purchase_links
 
 app = FastAPI(title="STEP SEOUL API", version="1.0.0")
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-
 @app.on_event("startup")
 def initialize_schema():
+    prepare_password_storage()
+    ensure_shipment_purchase_links()
     ensure_shoe_category_column()
     ensure_refund_request_columns()
     ensure_pickup_link_columns()
@@ -47,7 +43,7 @@ def initialize_schema():
 app.add_middleware(
     CORSMiddleware,
     allow_origin_regex=os.getenv("HQ_CORS_ORIGIN_REGEX", r"https?://(localhost|127\.0\.0\.1|192\.168\.10\.39)(:\d+)?"),
-    allow_methods=["GET", "POST", "PUT"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 app.include_router(hq_router)

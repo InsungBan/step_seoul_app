@@ -1,12 +1,10 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:step_seoul_app/services/api_config.dart';
 import 'package:step_seoul_app/services/session_service.dart';
 
-const customerApiBaseUrl = String.fromEnvironment(
-  'API_BASE_URL',
-  defaultValue: 'http://10.0.2.2:8000',
-);
+const customerApiBaseUrl = ApiConfig.baseUrl;
 
 final _listingVariantSuffix = RegExp(
   r'_(m|f|u)_([0-9]+)_([0-9]+)$',
