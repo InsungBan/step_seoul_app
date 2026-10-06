@@ -5,7 +5,7 @@ import 'package:step_seoul_app/services/session_service.dart';
 
 const customerApiBaseUrl = String.fromEnvironment(
   'API_BASE_URL',
-  defaultValue: 'http://192.168.10.40:8000',
+  defaultValue: 'http://10.0.2.2:8000',
 );
 
 final _listingVariantSuffix = RegExp(
@@ -126,8 +126,9 @@ class CustomerHomeService {
 
   Future<String> _currentUserId() async {
     final session = await SessionService.instance.readSession();
-    if (session == null)
+    if (session == null) {
       throw const CustomerHomeException('Sign in is required.');
+    }
     return session.userId;
   }
 
@@ -144,21 +145,31 @@ class CustomerHomeService {
   }
 
   Future<List<Map<String, dynamic>>> _recordsUri(Uri uri) async {
-    final response = await _client
-        .get(uri)
-        .timeout(const Duration(seconds: 10));
-    if (response.statusCode != 200) {
-      throw const CustomerHomeException('Could not load information.');
+    try {
+      final response = await _client
+          .get(uri)
+          .timeout(const Duration(seconds: 10));
+      if (response.statusCode != 200) {
+        throw CustomerHomeException(
+          'Could not load information from ${uri.host}${uri.path}. status=${response.statusCode}',
+        );
+      }
+      final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+      final result = decoded is Map<String, dynamic> ? decoded['result'] : null;
+      if (result is! List) {
+        throw const CustomerHomeException(
+          'The server returned invalid data format.',
+        );
+      }
+      return result
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+    } on http.ClientException catch (error) {
+      throw CustomerHomeException(
+        'Server connection failed: ${error.uri ?? uri}. Check API_BASE_URL or run the FastAPI server.',
+      );
     }
-    final decoded = jsonDecode(utf8.decode(response.bodyBytes));
-    final result = decoded is Map<String, dynamic> ? decoded['result'] : null;
-    if (result is! List) {
-      throw const CustomerHomeException('The server returned invalid data.');
-    }
-    return result
-        .whereType<Map>()
-        .map((item) => Map<String, dynamic>.from(item))
-        .toList();
   }
 }
 

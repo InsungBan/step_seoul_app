@@ -40,10 +40,12 @@ class _CustomerHomeState extends State<CustomerHome> {
     _reload();
   }
 
-  void _reload() => _homeFuture = _service.loadHome(
-    query: _query,
-    category: _category == '\uC804\uCCB4' ? null : _category,
-  );
+  void _reload() {
+    _homeFuture = _service.loadHome(
+      query: _query,
+      category: _category == '\uC804\uCCB4' ? null : _category,
+    );
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
