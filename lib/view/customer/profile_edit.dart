@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:step_seoul_app/services/profile_service.dart';
 
 const _blue = Color(0xFF2F67E8);
@@ -58,7 +59,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
           ),
         ),
       );
-      Navigator.of(context).pop(true);
+      Get.back<bool>(result: true);
     } on ProfileException catch (error) {
       if (mounted)
         ScaffoldMessenger.of(
@@ -80,7 +81,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
         style: TextStyle(color: _ink, fontWeight: FontWeight.w800),
       ),
       leading: IconButton(
-        onPressed: () => Navigator.of(context).pop(),
+        onPressed: () => Get.back<bool>(),
         icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _ink),
       ),
     ),
@@ -253,7 +254,7 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
         child: Row(
           children: [
             OutlinedButton(
-              onPressed: _saving ? null : () => Navigator.of(context).pop(),
+              onPressed: _saving ? null : () => Get.back<bool>(),
               style: OutlinedButton.styleFrom(minimumSize: const Size(130, 56)),
               child: const Text('\uCDE8\uC18C'),
             ),

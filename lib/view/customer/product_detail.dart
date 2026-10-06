@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:step_seoul_app/routes/app_routes.dart';
+import 'package:step_seoul_app/routes/route_arguments.dart';
 import 'package:step_seoul_app/services/customer_cart_service.dart';
 import 'package:step_seoul_app/services/customer_home_service.dart';
+import 'package:step_seoul_app/services/product_variant_service.dart';
 import 'package:step_seoul_app/view/customer/cart.dart';
 import 'package:step_seoul_app/view/customer/checkout_payment.dart';
 import 'package:step_seoul_app/view/customer/shoe_image.dart';
@@ -10,8 +14,9 @@ const _ink = Color(0xFF17233C);
 const _muted = Color(0xFF7486A0);
 
 class ProductDetail extends StatefulWidget {
-  const ProductDetail({super.key, required this.shoe});
+  const ProductDetail({super.key, required this.shoe, this.variantService});
   final CustomerShoe shoe;
+  final ProductVariantService? variantService;
 
   @override
   State<ProductDetail> createState() => _ProductDetailState();
@@ -19,13 +24,105 @@ class ProductDetail extends StatefulWidget {
 
 class _ProductDetailState extends State<ProductDetail> {
   final _cartService = CustomerCartService();
+  late final _variantService = widget.variantService ?? ProductVariantService();
+  late CustomerShoe _selectedShoe = widget.shoe;
+  late List<CustomerShoe> _variants = [widget.shoe];
   int _quantity = 1;
-  String _size = '270';
-  int _colorIndex = 0;
+  bool _loadingVariants = false;
+  String? _variantError;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVariants();
+  }
+
+  @override
+  void dispose() {
+    if (widget.variantService == null) _variantService.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadVariants() async {
+    if (_loadingVariants) return;
+    setState(() {
+      _loadingVariants = true;
+      _variantError = null;
+    });
+    try {
+      final variants = await _variantService.loadVariants(widget.shoe);
+      if (!mounted) return;
+      setState(() {
+        _variants = variants;
+        _selectedShoe = variants.firstWhere(
+          (shoe) => shoe.id == _selectedShoe.id,
+          orElse: () => _selectedShoe,
+        );
+        _limitQuantity();
+      });
+    } on ProductVariantException catch (error) {
+      if (mounted) setState(() => _variantError = error.message);
+    } finally {
+      if (mounted) setState(() => _loadingVariants = false);
+    }
+  }
+
+  void _limitQuantity() {
+    if (_selectedShoe.stock <= 0) {
+      _quantity = 1;
+    } else if (_quantity > _selectedShoe.stock) {
+      _quantity = _selectedShoe.stock;
+    }
+  }
+
+  void _selectColor(String code) {
+    if (code == shoeColorCode(_selectedShoe.id)) return;
+    final shoe = shoeForColor(_variants, _selectedShoe, code);
+    if (shoe == null) return;
+    setState(() {
+      _selectedShoe = shoe;
+      _limitQuantity();
+    });
+  }
+
+  List<String> _sizesForSelectedColor() {
+    final sizes = _variants
+        .where(
+          (shoe) =>
+              shoeFamilyPrefix(shoe.id) == shoeFamilyPrefix(_selectedShoe.id) &&
+              shoeColorCode(shoe.id) == shoeColorCode(_selectedShoe.id) &&
+              shoeVariantGender(shoe.id) == shoeVariantGender(_selectedShoe.id),
+        )
+        .map((shoe) => shoeVariantSize(shoe.id))
+        .whereType<String>()
+        .toSet()
+        .toList();
+    sizes.sort((a, b) => int.parse(a).compareTo(int.parse(b)));
+    return sizes;
+  }
+
+  void _selectSize(String size) {
+    final code = shoeColorCode(_selectedShoe.id);
+    if (code == null) return;
+    final shoe = shoeForColor(_variants, _selectedShoe, code, size: size);
+    if (shoe == null || shoeVariantSize(shoe.id) != size) return;
+    setState(() {
+      _selectedShoe = shoe;
+      _limitQuantity();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final available = widget.shoe.stock > 0;
+    final shoe = _selectedShoe;
+    final available = shoe.stock > 0;
+    final colors = productColorOptions(_variants, shoe);
+    final selectedColorCode = shoeColorCode(shoe.id);
+    final selectedColor = colors
+        .where((option) => option.code == selectedColorCode)
+        .firstOrNull;
+    final colorLabel = selectedColor?.label ?? '정보 없음';
+    final size = shoeVariantSize(shoe.id) ?? '정보 없음';
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FD),
       appBar: AppBar(
@@ -43,7 +140,7 @@ class _ProductDetailState extends State<ProductDetail> {
         leading: Padding(
           padding: const EdgeInsets.all(8),
           child: IconButton(
-            onPressed: Navigator.of(context).pop,
+            onPressed: () => Get.back(),
             icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _ink),
             style: IconButton.styleFrom(
               backgroundColor: Colors.white,
@@ -69,14 +166,7 @@ class _ProductDetailState extends State<ProductDetail> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 7, 20, 18),
         children: [
-          _ProductHero(
-            imageUrl: widget.shoe.imageUrl,
-            color: _colorIndex == 0
-                ? const Color(0xFFD3E8FF)
-                : _colorIndex == 1
-                ? const Color(0xFF20293C)
-                : const Color(0xFFD7DCE5),
-          ),
+          _ProductHero(imageUrl: shoe.imageUrl, color: const Color(0xFFD3E8FF)),
           const SizedBox(height: 14),
           const Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -90,7 +180,7 @@ class _ProductDetailState extends State<ProductDetail> {
           _Availability(available: available),
           const SizedBox(height: 11),
           Text(
-            widget.shoe.name,
+            shoe.name,
             style: const TextStyle(
               color: _ink,
               fontSize: 28,
@@ -100,14 +190,14 @@ class _ProductDetailState extends State<ProductDetail> {
           const SizedBox(height: 5),
           Text(
             '\uAC00\uBCBC\uACE0 \uC548\uC815\uC801\uC778 \uB370\uC77C\uB9AC \uB7EC\uB2DD\uD654 \u00B7 ' +
-                widget.shoe.id,
+                shoe.id,
             style: const TextStyle(color: _muted),
           ),
           const SizedBox(height: 13),
           Row(
             children: [
               Text(
-                widget.shoe.price + '\uC6D0',
+                shoe.price + '\uC6D0',
                 style: const TextStyle(
                   color: _ink,
                   fontSize: 25,
@@ -122,19 +212,24 @@ class _ProductDetailState extends State<ProductDetail> {
             ],
           ),
           const Divider(height: 27, color: Color(0xFFDCE5F1)),
-          _SectionLabel(
-            label: '\uC0C9\uC0C1',
-            trailing: _colorIndex == 0
-                ? '\uC624\uD504\uD654\uC774\uD2B8'
-                : _colorIndex == 1
-                ? '\uB124\uC774\uBE44'
-                : '\uADF8\uB808\uC774',
-          ),
+          _SectionLabel(label: '\uC0C9\uC0C1', trailing: colorLabel),
           const SizedBox(height: 12),
           _ColorPicker(
-            selected: _colorIndex,
-            onSelected: (index) => setState(() => _colorIndex = index),
+            colors: colors,
+            selected: selectedColorCode,
+            onSelected: _selectColor,
           ),
+          if (_loadingVariants)
+            const Padding(
+              padding: EdgeInsets.only(top: 8),
+              child: Text('색상 확인 중…', style: TextStyle(color: _muted)),
+            ),
+          if (_variantError != null)
+            TextButton.icon(
+              onPressed: _loadVariants,
+              icon: const Icon(Icons.refresh, size: 18),
+              label: Text(_variantError!),
+            ),
           const SizedBox(height: 22),
           const _SectionLabel(
             label: '\uC0AC\uC774\uC988',
@@ -142,8 +237,9 @@ class _ProductDetailState extends State<ProductDetail> {
           ),
           const SizedBox(height: 11),
           _SizePicker(
-            selected: _size,
-            onSelected: (value) => setState(() => _size = value),
+            sizes: _sizesForSelectedColor(),
+            selected: size,
+            onSelected: _selectSize,
           ),
           const SizedBox(height: 22),
           const Text(
@@ -181,7 +277,7 @@ class _ProductDetailState extends State<ProductDetail> {
                       SizedBox(height: 4),
                       Text(
                         '\uC7AC\uACE0 ' +
-                            widget.shoe.stock.toString() +
+                            shoe.stock.toString() +
                             '\uAC1C \u00B7 \uC624\uB298 \uC218\uB839 \uAC00\uB2A5',
                         style: TextStyle(
                           color: Color(0xFF26A66C),
@@ -218,7 +314,9 @@ class _ProductDetailState extends State<ProductDetail> {
                 onMinus: _quantity > 1
                     ? () => setState(() => _quantity--)
                     : null,
-                onPlus: available ? () => setState(() => _quantity++) : null,
+                onPlus: available && _quantity < shoe.stock
+                    ? () => setState(() => _quantity++)
+                    : null,
               ),
             ],
           ),
@@ -238,7 +336,7 @@ class _ProductDetailState extends State<ProductDetail> {
               Row(
                 children: [
                   OutlinedButton(
-                    onPressed: _addToCart,
+                    onPressed: available ? _addToCart : null,
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size(57, 57),
                       side: const BorderSide(color: Color(0xFFDCE5F1)),
@@ -253,16 +351,15 @@ class _ProductDetailState extends State<ProductDetail> {
                   Expanded(
                     child: ElevatedButton(
                       onPressed: available
-                          ? () => Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => CheckoutPaymentPage(
-                                  items: [
-                                    CheckoutLineItem(
-                                      shoe: widget.shoe,
-                                      quantity: _quantity,
-                                    ),
-                                  ],
-                                ),
+                          ? () => Get.toNamed(
+                              AppRoutes.checkoutPayment,
+                              arguments: CheckoutArguments(
+                                items: [
+                                  CheckoutLineItem(
+                                    shoe: shoe,
+                                    quantity: _quantity,
+                                  ),
+                                ],
                               ),
                             )
                           : null,
@@ -273,7 +370,7 @@ class _ProductDetailState extends State<ProductDetail> {
                       ),
                       child: Text(
                         '\uAD6C\uB9E4\uD558\uAE30  \u00B7  ' +
-                            widget.shoe.price +
+                            shoe.price +
                             '\uC6D0',
                         style: const TextStyle(
                           fontSize: 16,
@@ -286,11 +383,7 @@ class _ProductDetailState extends State<ProductDetail> {
               ),
               const SizedBox(height: 7),
               Text(
-                '\uC120\uD0DD: \uC624\uD504\uD654\uC774\uD2B8 \u00B7 ' +
-                    _size +
-                    ' \u00B7 ' +
-                    _quantity.toString() +
-                    '\uAC1C \u00B7 \uAC15\uB0A8 \uB300\uB9AC\uC810',
+                '선택: $colorLabel · $size · $_quantity개 · 강남 대리점',
                 style: const TextStyle(color: _muted, fontSize: 11),
               ),
             ],
@@ -305,11 +398,9 @@ class _ProductDetailState extends State<ProductDetail> {
 
   Future<void> _addToCart() async {
     try {
-      await _cartService.addShoe(widget.shoe, quantity: _quantity);
+      await _cartService.addShoe(_selectedShoe, quantity: _quantity);
       if (!mounted) return;
-      await Navigator.of(
-        context,
-      ).push(MaterialPageRoute(builder: (_) => const CartPage()));
+      await Get.toNamed(AppRoutes.cart);
     } on CustomerCartException catch (error) {
       _notice(error.message);
     } catch (_) {
@@ -502,73 +593,83 @@ class _SectionLabel extends StatelessWidget {
 }
 
 class _ColorPicker extends StatelessWidget {
-  const _ColorPicker({required this.selected, required this.onSelected});
-  final int selected;
-  final ValueChanged<int> onSelected;
-  static const _colors = [Colors.white, Color(0xFF17233C), Color(0xFFAAB3C2)];
+  const _ColorPicker({
+    required this.colors,
+    required this.selected,
+    required this.onSelected,
+  });
+  final List<ProductColorOption> colors;
+  final String? selected;
+  final ValueChanged<String> onSelected;
   @override
-  Widget build(BuildContext context) => Row(
-    children: List.generate(
-      _colors.length,
-      (index) => Padding(
-        padding: const EdgeInsets.only(right: 13),
-        child: InkWell(
-          onTap: () => onSelected(index),
-          borderRadius: BorderRadius.circular(25),
-          child: Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: _colors[index],
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: selected == index ? _blue : const Color(0xFFDCE5F1),
-                width: selected == index ? 3 : 1,
+  Widget build(BuildContext context) => Wrap(
+    spacing: 13,
+    runSpacing: 10,
+    children: colors.map((option) {
+      final swatch = option.argb == null ? Colors.white : Color(option.argb!);
+      final isSelected = selected == option.code;
+      return Semantics(
+        label: option.label,
+        button: true,
+        selected: isSelected,
+        child: Tooltip(
+          message: option.label,
+          child: InkWell(
+            key: ValueKey('product-color-${option.code}'),
+            onTap: () => onSelected(option.code),
+            borderRadius: BorderRadius.circular(25),
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: swatch,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected ? _blue : const Color(0xFFDCE5F1),
+                  width: isSelected ? 3 : 1,
+                ),
               ),
+              child: isSelected
+                  ? Icon(
+                      Icons.check_rounded,
+                      color: swatch.computeLuminance() > .5
+                          ? _blue
+                          : Colors.white,
+                    )
+                  : option.argb == null
+                  ? const Icon(Icons.question_mark, color: _muted, size: 18)
+                  : null,
             ),
-            child: selected == index
-                ? Icon(
-                    Icons.check_rounded,
-                    color: index == 0 ? _blue : Colors.white,
-                  )
-                : null,
           ),
         ),
-      ),
-    ),
+      );
+    }).toList(),
   );
 }
 
 class _SizePicker extends StatelessWidget {
-  const _SizePicker({required this.selected, required this.onSelected});
+  const _SizePicker({
+    required this.sizes,
+    required this.selected,
+    required this.onSelected,
+  });
+  final List<String> sizes;
   final String selected;
   final ValueChanged<String> onSelected;
-  static const _sizes = ['250', '260', '270', '280', '290'];
   @override
-  Widget build(BuildContext context) => Row(
-    children: _sizes.map((size) {
-      final selected = size == this.selected;
-      final disabled = size == '290';
-      return Expanded(
-        child: Padding(
-          padding: const EdgeInsets.only(right: 7),
-          child: OutlinedButton(
-            onPressed: disabled ? null : () => onSelected(size),
-            style: OutlinedButton.styleFrom(
-              backgroundColor: selected ? _blue : Colors.white,
-              foregroundColor: selected ? Colors.white : _ink,
-              side: BorderSide(
-                color: selected ? _blue : const Color(0xFFDCE5F1),
-              ),
-            ),
-            child: Text(
-              size,
-              style: TextStyle(
-                decoration: disabled ? TextDecoration.lineThrough : null,
-              ),
-            ),
-          ),
+  Widget build(BuildContext context) => Wrap(
+    spacing: 7,
+    runSpacing: 7,
+    children: sizes.map((size) {
+      final isSelected = size == selected;
+      return OutlinedButton(
+        onPressed: () => onSelected(size),
+        style: OutlinedButton.styleFrom(
+          backgroundColor: isSelected ? _blue : Colors.white,
+          foregroundColor: isSelected ? Colors.white : _ink,
+          side: BorderSide(color: isSelected ? _blue : const Color(0xFFDCE5F1)),
         ),
+        child: Text(size),
       );
     }).toList(),
   );

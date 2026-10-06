@@ -1,0 +1,122 @@
+{
+  "committed": false,
+  "tables": {
+    "user": {
+      "before": 48,
+      "inserted": 0,
+      "skipped": 40,
+      "after": 48
+    },
+    "employee": {
+      "before": 16,
+      "inserted": 0,
+      "skipped": 9,
+      "after": 16
+    },
+    "shoe_manufacturer": {
+      "before": 11,
+      "inserted": 0,
+      "skipped": 6,
+      "after": 11
+    },
+    "shoe": {
+      "before": 37,
+      "inserted": 0,
+      "skipped": 32,
+      "after": 37
+    },
+    "store": {
+      "before": 33,
+      "inserted": 0,
+      "skipped": 8,
+      "after": 33
+    },
+    "approval": {
+      "before": 29,
+      "inserted": 0,
+      "skipped": 24,
+      "after": 29
+    },
+    "approval_process": {
+      "before": 29,
+      "inserted": 0,
+      "skipped": 24,
+      "after": 29
+    },
+    "authentication": {
+      "before": 49,
+      "inserted": 0,
+      "skipped": 44,
+      "after": 49
+    },
+    "cart": {
+      "before": 103,
+      "inserted": 0,
+      "skipped": 96,
+      "after": 103
+    },
+    "get_order": {
+      "before": 17,
+      "inserted": 0,
+      "skipped": 12,
+      "after": 17
+    },
+    "manufacturing": {
+      "before": 37,
+      "inserted": 0,
+      "skipped": 32,
+      "after": 37
+    },
+    "payment": {
+      "before": 102,
+      "inserted": 0,
+      "skipped": 96,
+      "after": 102
+    },
+    "purchase": {
+      "before": 102,
+      "inserted": 0,
+      "skipped": 96,
+      "after": 102
+    },
+    "purchase_order": {
+      "before": 17,
+      "inserted": 0,
+      "skipped": 12,
+      "after": 17
+    },
+    "recall": {
+      "before": 12,
+      "inserted": 0,
+      "skipped": 12,
+      "after": 12
+    },
+    "receive": {
+      "before": 63,
+      "inserted": 0,
+      "skipped": 63,
+      "after": 63
+    },
+    "refund": {
+      "before": 15,
+      "inserted": 0,
+      "skipped": 8,
+      "after": 15
+    },
+    "return_record": {
+      "before": 21,
+      "inserted": 0,
+      "skipped": 16,
+      "after": 21
+    },
+    "shipment": {
+      "before": 83,
+      "inserted": 0,
+      "skipped": 82,
+      "after": 83
+    }
+  },
+  "verified_sample_count": 712,
+  "as_of": "2026-10-02",
+  "verification": "Fresh database connection and API read after commit; dry-run skips all sample rows."
+}

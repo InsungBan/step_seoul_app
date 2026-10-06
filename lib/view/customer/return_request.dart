@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:step_seoul_app/services/customer_home_service.dart';
 import 'package:step_seoul_app/services/refund_request_service.dart';
 
@@ -72,7 +73,7 @@ class _ReturnRequestPageState extends State<ReturnRequestPage> {
         ),
       );
       if (mounted) {
-        Navigator.of(context).pop();
+        Get.back();
       }
     } on RefundRequestException catch (error) {
       if (mounted) {
@@ -95,7 +96,7 @@ class _ReturnRequestPageState extends State<ReturnRequestPage> {
       elevation: 0,
       centerTitle: true,
       leading: IconButton(
-        onPressed: () => Navigator.of(context).pop(),
+        onPressed: () => Get.back(),
         icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _ink),
       ),
       title: const Text(

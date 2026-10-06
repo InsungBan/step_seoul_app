@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:step_seoul_app/routes/app_routes.dart';
 
 const _blue = Color(0xFF2F67E8);
 
@@ -31,7 +32,7 @@ class CustomerBottomTabs extends StatelessWidget {
       onSelected!(index);
       return;
     }
-    Get.offAllNamed('/customer/home', arguments: index);
+    Get.offAllNamed(AppRoutes.customerHome, arguments: index);
   }
 
   @override

@@ -7,6 +7,13 @@ from fastapi import HTTPException
 from db.database import db
 
 
+def _display_shoe_name(shoe: dict, shoe_id: str) -> str:
+    shoe_name = shoe.get("shoe_name")
+    if shoe_name is not None and shoe_name.strip():
+        return shoe_name
+    return shoe.get("brand_name") or shoe_id
+
+
 def complete_checkout(
     user_id: str,
     store_id: str,
@@ -71,10 +78,11 @@ def complete_checkout(
                 cursor.execute(
                     """
                     INSERT INTO `purchase`
-                      (`shoe_shoe_id`, `user_user_id`, `purchase_id`, `sale_price`, `payment_id`, `quantity`)
-                    VALUES (%s, %s, %s, %s, %s, %s)
+                      (`shoe_shoe_id`, `user_user_id`, `purchase_id`, `sale_price`,
+                       `payment_id`, `quantity`, `store_store_id`)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
                     """,
-                    (shoe_id, user_id, order_id, str(price), payment_id, str(quantity)),
+                    (shoe_id, user_id, order_id, str(price), payment_id, str(quantity), store_id),
                 )
                 shipment_id = f"SHP-{suffix}-{index}"
                 cursor.execute(
@@ -92,7 +100,7 @@ def complete_checkout(
                 )
                 response_items.append({
                     "shoe_id": shoe_id,
-                    "shoe_name": shoe.get("brand_name") or shoe_id,
+                    "shoe_name": _display_shoe_name(shoe, shoe_id),
                     "quantity": quantity,
                     "price": price,
                 })
@@ -166,10 +174,12 @@ def read_order_detail(user_id: str, order_id: str):
                     payment = cursor.fetchone()
                 items.append({
                     "shoe_id": purchase["shoe_shoe_id"],
-                    "name": shoe.get("brand_name") or purchase["shoe_shoe_id"],
+                    "name": _display_shoe_name(shoe, purchase["shoe_shoe_id"]),
                     "price": int("".join(filter(str.isdigit, str(purchase.get("sale_price") or shoe.get("shoe_price") or 0))) or 0),
                     "quantity": int(purchase.get("quantity") or 1),
                     "category": shoe.get("shoe_category") or "",
+                    "shoe_img_url": shoe.get("shoe_img_url"),
+                    "shoe_image_url": shoe.get("shoe_image_url"),
                     "stock": int(shoe.get("stock_quantity") or 0),
                 })
         total = sum(item["price"] * item["quantity"] for item in items)

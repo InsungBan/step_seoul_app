@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:step_seoul_app/routes/app_routes.dart';
 import 'package:step_seoul_app/services/customer_home_service.dart';
 import 'package:step_seoul_app/view/customer/branch_home.dart';
-import 'package:step_seoul_app/view/customer/cart.dart';
 import 'package:step_seoul_app/view/customer/customer_bottom_tabs.dart';
 import 'package:step_seoul_app/view/customer/my_page.dart';
 import 'package:step_seoul_app/view/customer/order_history.dart';
-import 'package:step_seoul_app/view/customer/product_detail.dart';
 import 'package:step_seoul_app/view/customer/shoe_image.dart';
-import 'package:step_seoul_app/view/customer/product_list.dart';
 import 'package:step_seoul_app/view/common/session_logout_button.dart';
 
 const _blue = Color(0xFF2F67E8);
@@ -170,10 +169,9 @@ class _HomeTab extends StatelessWidget {
             ),
             const Spacer(),
             TextButton(
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => ProductList(shoes: data.shoes),
-                ),
+              onPressed: () => Get.toNamed(
+                AppRoutes.productList,
+                arguments: data.shoes,
               ),
               child: const Text(
                 '\uC804\uCCB4\uBCF4\uAE30',
@@ -199,10 +197,9 @@ class _HomeTab extends StatelessWidget {
             ),
             const Spacer(),
             TextButton(
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => ProductList(shoes: data.shoes),
-                ),
+              onPressed: () => Get.toNamed(
+                AppRoutes.productList,
+                arguments: data.shoes,
               ),
               child: const Text(
                 '\uB354\uBCF4\uAE30',
@@ -284,9 +281,7 @@ class _TopBar extends StatelessWidget {
       _RoundIcon(
         icon: Icons.shopping_bag_outlined,
         badge: cartCount,
-        onTap: () => Navigator.of(
-          context,
-        ).push(MaterialPageRoute(builder: (_) => const CartPage())),
+        onTap: () => Get.toNamed(AppRoutes.cart),
       ),
     ],
   );
@@ -632,9 +627,7 @@ class _ProductCard extends StatelessWidget {
   final double width;
   @override
   Widget build(BuildContext context) => GestureDetector(
-    onTap: () => Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => ProductDetail(shoe: shoe))),
+    onTap: () => Get.toNamed(AppRoutes.productDetail, arguments: shoe),
     child: Container(
       width: width,
       padding: const EdgeInsets.all(16),
@@ -652,37 +645,40 @@ class _ProductCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Stack(
-            children: [
-              Container(
-                height: 157,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFDCEBFF),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: ShoeImage(
-                    imageUrl: shoe.imageUrl,
-                    fit: BoxFit.contain,
+          Flexible(
+            child: Stack(
+              children: [
+                Container(
+                  height: 157,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDCEBFF),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: ShoeImage(
+                      imageUrl: shoe.imageUrl,
+                      fit: BoxFit.contain,
+                    ),
                   ),
                 ),
-              ),
-              const Positioned(
-                right: 8,
-                top: 8,
-                child: Icon(
-                  Icons.favorite_border_rounded,
-                  color: Color(0xFF71839E),
-                  size: 30,
+                const Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Icon(
+                    Icons.favorite_border_rounded,
+                    color: Color(0xFF71839E),
+                    size: 30,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           const SizedBox(height: 14),
           Text(
             shoe.name,
+            maxLines: 1,
             style: const TextStyle(
               color: _ink,
               fontSize: 17,
@@ -693,6 +689,7 @@ class _ProductCard extends StatelessWidget {
           const SizedBox(height: 5),
           Text(
             'ID \u00B7 ' + shoe.id,
+            maxLines: 1,
             style: const TextStyle(color: _muted, fontSize: 12),
             overflow: TextOverflow.ellipsis,
           ),

@@ -7,7 +7,7 @@ router = APIRouter(prefix="/checkout", tags=["checkout"])
 
 
 class CheckoutItem(BaseModel):
-    shoe_id: str = Field(min_length=1, max_length=20)
+    shoe_id: str = Field(min_length=1, max_length=45)
     quantity: int = Field(ge=1, le=100)
 
 
