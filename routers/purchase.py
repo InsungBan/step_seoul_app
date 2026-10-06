@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Form
 
-from services.purchase_service import create_purchase, read_purchase, update_purchase, delete_purchase
+from services.purchase_service import create_purchase, read_purchase, read_purchase_for_user, update_purchase, delete_purchase
 
 router = APIRouter(prefix="/purchase", tags=["purchase"])
 
 
 @router.post("/upload")
 def upload(
-    shoe_shoe_id: str = Form(..., max_length=20),
+    shoe_shoe_id: str = Form(..., max_length=45),
     user_user_id: str = Form(..., max_length=12),
     purchase_id: str = Form(..., max_length=45),
     store_store_id: str = Form(..., max_length=20),

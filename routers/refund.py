@@ -1,8 +1,24 @@
 from fastapi import APIRouter, Form
+from pydantic import BaseModel, Field
 
 from services.refund_service import create_refund, read_refund, update_refund, delete_refund
+from services.refund_request_service import create_refund_request
 
 router = APIRouter(prefix="/refund", tags=["refund"])
+
+
+class RefundRequest(BaseModel):
+    user_id: str = Field(min_length=1, max_length=12)
+    order_id: str = Field(min_length=1, max_length=45)
+    shoe_id: str = Field(min_length=1, max_length=45)
+    quantity: int = Field(ge=1, le=100)
+    reason: str = Field(min_length=1, max_length=45)
+    detail_reason: str | None = Field(default=None, max_length=200)
+
+
+@router.post("/request")
+def request_refund(payload: RefundRequest):
+    return create_refund_request(**payload.model_dump())
 
 
 @router.post("/upload")

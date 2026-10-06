@@ -73,6 +73,13 @@ def read_shipment():
     return execute("SELECT * FROM `shipment`")
 
 
+def read_shipment_for_shoe(shoe_shoe_id: str):
+    return execute(
+        "SELECT * FROM `shipment` WHERE `shoe_shoe_id` = %s",
+        (shoe_shoe_id,),
+    )
+
+
 def update_shipment(
     shoe_shoe_id: str,
     employee_employee_id: str,
