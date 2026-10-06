@@ -7,7 +7,7 @@ router = APIRouter(prefix="/shipment", tags=["shipment"])
 
 @router.post("/upload")
 def upload(
-    shoe_shoe_id: str = Form(..., max_length=20),
+    shoe_shoe_id: str = Form(..., max_length=45),
     employee_employee_id: str = Form(..., max_length=20),
     shipment_id: str = Form(..., max_length=45),
     delivery_status: str | None = Form(None, max_length=45),

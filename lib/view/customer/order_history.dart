@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:step_seoul_app/routes/app_routes.dart';
 import 'package:step_seoul_app/services/customer_home_service.dart';
 import 'package:step_seoul_app/view/customer/cart.dart';
-import 'package:step_seoul_app/view/customer/order_detail.dart';
-import 'package:step_seoul_app/view/customer/return_request.dart';
 
 const _blue = Color(0xFF2F67E8);
 const _ink = Color(0xFF17233C);
@@ -274,10 +274,9 @@ class _OrderCard extends StatelessWidget {
                 ),
               ),
               OutlinedButton(
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => OrderDetailPage(orderId: order.id),
-                  ),
+                onPressed: () => Get.toNamed(
+                  AppRoutes.orderDetail,
+                  arguments: order.id,
                 ),
                 child: const Text('\uC0C1\uC138\uBCF4\uAE30'),
               ),
@@ -323,10 +322,9 @@ class _OrderCard extends StatelessWidget {
             child: OutlinedButton.icon(
               onPressed: order.shoe == null
                   ? null
-                  : () => Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => ReturnRequestPage(order: order),
-                      ),
+                  : () => Get.toNamed(
+                      AppRoutes.returnRequest,
+                      arguments: order,
                     ),
               icon: const Icon(Icons.keyboard_return_rounded, size: 19),
               label: const Text('\uBC18\uD488 \uC2E0\uCCAD'),

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:get/get.dart';
+import 'package:step_seoul_app/routes/app_routes.dart';
+import 'package:step_seoul_app/routes/route_arguments.dart';
 import 'package:step_seoul_app/services/customer_home_service.dart';
-import 'package:step_seoul_app/view/customer/branch_detail.dart';
-import 'package:step_seoul_app/view/customer/branch_directions.dart';
-import 'package:step_seoul_app/view/customer/branch_list.dart';
 import 'package:step_seoul_app/view/customer/cart.dart';
 
 const _blue = Color(0xFF2F67E8);
@@ -222,15 +222,14 @@ class _BranchHomeState extends State<BranchHome> {
   }
 
   Future<void> _openBranchList() async {
-    final store = await Navigator.of(context).push<CustomerStore>(
-      MaterialPageRoute(
-        builder: (_) => BranchListPage(
-          stores: widget.stores,
-          selectedStoreId: _selectedStoreId,
-        ),
+    final store = await Get.toNamed(
+      AppRoutes.branchList,
+      arguments: BranchListArguments(
+        stores: widget.stores,
+        selectedStoreId: _selectedStoreId,
       ),
     );
-    if (store == null || !mounted) return;
+    if (store is! CustomerStore || !mounted) return;
     setState(() {
       _selectedStoreId = store.id;
     });
@@ -238,10 +237,11 @@ class _BranchHomeState extends State<BranchHome> {
   }
 
   Future<void> _openDetails(CustomerStore store) async {
-    final selected = await Navigator.of(context).push<CustomerStore>(
-      MaterialPageRoute(builder: (_) => BranchDetailPage(store: store)),
+    final selected = await Get.toNamed(
+      AppRoutes.branchDetail,
+      arguments: store,
     );
-    if (selected == null || !mounted) return;
+    if (selected is! CustomerStore || !mounted) return;
     setState(() {
       _selectedStoreId = selected.id;
     });
@@ -249,9 +249,7 @@ class _BranchHomeState extends State<BranchHome> {
   }
 
   void _openDirections(CustomerStore store) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => BranchDirectionsPage(store: store)),
-    );
+    Get.toNamed(AppRoutes.branchDirections, arguments: store);
   }
 }
 

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:step_seoul_app/routes/app_routes.dart';
 import 'package:step_seoul_app/services/checkout_service.dart';
-import 'package:step_seoul_app/view/customer/order_detail.dart';
 
 const _blue = Color(0xFF2F67E8);
 const _ink = Color(0xFF17233C);
@@ -30,7 +30,8 @@ class OrderCompletePage extends StatelessWidget {
         ),
         actions: [
           IconButton(
-            onPressed: () => Get.offAllNamed('/customer/home', arguments: 0),
+            onPressed: () =>
+                Get.offAllNamed(AppRoutes.customerHome, arguments: 0),
             icon: const Icon(Icons.close_rounded, color: _muted),
             style: IconButton.styleFrom(
               backgroundColor: Colors.white,
@@ -91,7 +92,7 @@ class OrderCompletePage extends StatelessWidget {
             children: [
               OutlinedButton.icon(
                 onPressed: () =>
-                    Get.offAllNamed('/customer/home', arguments: 0),
+                    Get.offAllNamed(AppRoutes.customerHome, arguments: 0),
                 icon: const Icon(Icons.home_outlined),
                 label: const Text('\uD648\uC73C\uB85C'),
                 style: OutlinedButton.styleFrom(
@@ -103,10 +104,9 @@ class OrderCompletePage extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: FilledButton.icon(
-                  onPressed: () => Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(
-                      builder: (_) => OrderDetailPage(orderId: receipt.orderId),
-                    ),
+                  onPressed: () => Get.offNamed(
+                    AppRoutes.orderDetail,
+                    arguments: receipt.orderId,
                   ),
                   icon: const Icon(Icons.receipt_long_outlined),
                   label: const Text('\uC8FC\uBB38 \uC0C1\uC138 \uBCF4\uAE30'),

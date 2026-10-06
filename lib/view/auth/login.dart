@@ -3,12 +3,9 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+import 'package:step_seoul_app/routes/app_routes.dart';
 import 'package:step_seoul_app/services/session_service.dart';
 import 'package:step_seoul_app/services/api_config.dart';
-import 'package:step_seoul_app/view/auth/register.dart';
-import 'package:step_seoul_app/view/customer/home.dart';
-import 'package:step_seoul_app/view/employee/work_home.dart';
-import 'package:step_seoul_app/view/executive/executive_dashboard.dart';
 
 const _apiBaseUrl = ApiConfig.baseUrl;
 const _blue = Color(0xFF2F67E8);
@@ -59,13 +56,13 @@ class _LoginState extends State<Login> {
       if (!mounted) return;
       switch (destination) {
         case _LoginDestination.customer:
-          Get.offAll(() => const CustomerHome());
+          Get.offAllNamed(AppRoutes.customerHome);
           return;
         case _LoginDestination.employee:
-          Get.offAll(() => const WorkHome());
+          Get.offAllNamed(AppRoutes.employeeWorkHome);
           return;
         case _LoginDestination.executive:
-          Get.offAll(() => const ExecutiveDashboard());
+          Get.offAllNamed(AppRoutes.executiveDashboard);
           return;
       }
     } on _LoginException catch (error) {
@@ -433,7 +430,7 @@ class _LoginCard extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           OutlinedButton.icon(
-            onPressed: () => Get.to(() => const Register()),
+            onPressed: () => Get.toNamed(AppRoutes.register),
             icon: const Icon(Icons.check_circle_outline_rounded),
             label: const Text('\uD68C\uC6D0\uAC00\uC785'),
             style: OutlinedButton.styleFrom(

@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:get/get.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:step_seoul_app/routes/app_routes.dart';
 import 'package:step_seoul_app/services/customer_home_service.dart';
 import 'package:step_seoul_app/services/session_service.dart';
 import 'package:step_seoul_app/view/customer/cart.dart';
-import 'package:step_seoul_app/view/customer/branch_directions.dart';
 
 const _blue = Color(0xFF2F67E8);
 const _ink = Color(0xFF17233C);
@@ -103,7 +104,7 @@ class _BranchDetailPageState extends State<BranchDetailPage> {
       userId: session.userId,
       storeId: widget.store.id,
     );
-    if (mounted) Navigator.of(context).pop(widget.store);
+    if (mounted) Get.back<CustomerStore>(result: widget.store);
   }
 
   String get _storeName =>
@@ -135,7 +136,7 @@ class _BranchDetailPageState extends State<BranchDetailPage> {
       leading: Padding(
         padding: const EdgeInsets.all(8),
         child: IconButton(
-          onPressed: Navigator.of(context).pop,
+          onPressed: () => Get.back<CustomerStore>(),
           icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _ink),
           style: IconButton.styleFrom(
             backgroundColor: Colors.white,
@@ -216,10 +217,9 @@ class _BranchDetailPageState extends State<BranchDetailPage> {
         child: Row(
           children: [
             OutlinedButton.icon(
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => BranchDirectionsPage(store: widget.store),
-                ),
+              onPressed: () => Get.toNamed(
+                AppRoutes.branchDirections,
+                arguments: widget.store,
               ),
               icon: const Icon(Icons.navigation_outlined),
               label: const Text('\uAE38\uCC3E\uAE30'),

@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
-import 'package:step_seoul_app/view/auth/login.dart';
+import 'package:step_seoul_app/routes/app_routes.dart';
 
 const _apiBaseUrl = String.fromEnvironment(
   'API_BASE_URL',
@@ -122,7 +122,7 @@ class _RegisterState extends State<Register> {
         );
       }
       if (!mounted) return;
-      Get.offAll(() => const Login());
+      Get.offAllNamed(AppRoutes.login);
       Get.snackbar(
         '\uAC00\uC785 \uC644\uB8CC',
         '\uD68C\uC6D0\uAC00\uC785\uC774 \uC644\uB8CC\uB418\uC5C8\uC2B5\uB2C8\uB2E4. \uB85C\uADF8\uC778\uD574 \uC8FC\uC138\uC694.',
