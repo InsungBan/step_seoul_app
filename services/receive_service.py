@@ -1,3 +1,5 @@
+import re
+
 import pymysql
 from fastapi import HTTPException
 
@@ -13,7 +15,7 @@ def ensure_pickup_link_columns():
         conn = db()
         tick = chr(96)
         columns = {
-            "receive_shoe_id": "VARCHAR(20) NULL",
+            "receive_shoe_id": "VARCHAR(45) NULL",
             "receive_purchase_id": "VARCHAR(45) NULL",
         }
         with conn.cursor() as cursor:
@@ -22,9 +24,21 @@ def ensure_pickup_link_columns():
                     f"SHOW COLUMNS FROM {tick}receive{tick} WHERE Field = %s",
                     (name,),
                 )
-                if cursor.fetchone() is None:
+                column = cursor.fetchone()
+                if column is None:
                     cursor.execute(
                         f"ALTER TABLE {tick}receive{tick} ADD COLUMN {tick}{name}{tick} {definition}"
+                    )
+                    continue
+
+                # Shoe IDs are VARCHAR(45) in the product table. Earlier app
+                # versions created receive_shoe_id as VARCHAR(20), which made
+                # inbound fail for longer IDs when inserting the pickup row.
+                current_type = str(column[1]).strip().lower()
+                length_match = re.fullmatch(r"(?:var)?char\((\d+)\)", current_type)
+                if length_match and int(length_match.group(1)) < 45:
+                    cursor.execute(
+                        f"ALTER TABLE {tick}receive{tick} MODIFY COLUMN {tick}{name}{tick} {definition}"
                     )
         conn.commit()
     except pymysql.MySQLError as error:

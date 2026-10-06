@@ -940,6 +940,19 @@ class _HqConsoleState extends State<HqConsole> {
         FilledButton.icon(
           onPressed: () => setState(() {
             writing = true;
+            proposalEmployeeId =
+                db
+                    .rows('employee')
+                    .any(
+                      (employee) =>
+                          employee['employee_id'].toString() ==
+                          widget.currentEmployeeId,
+                    )
+                ? widget.currentEmployeeId
+                : null;
+            proposalCreatedAt = DateTime.now().toUtc().add(
+              const Duration(hours: 9),
+            );
             page = 0;
           }),
           icon: const Icon(Icons.add),
@@ -1191,7 +1204,7 @@ class _HqConsoleState extends State<HqConsole> {
     },
     'approval' || 'pending' || 'approved' || 'rejected' => {
       'approval_id': '품의번호',
-      '_created': '작성일',
+      '_created': '작성일자',
       'approval_name': '제목 / 신청 사유',
       '_requested_amount': '신청 금액',
       '_author': '결재 담당 직원',
@@ -1272,7 +1285,7 @@ class _HqConsoleState extends State<HqConsole> {
           : '상태 코드 ${db.payment(row)?['payment_status']}';
     }
     if (field == '_created') {
-      return text(db.latestApproval(row['approval_id'])?['approval_date']);
+      return text(row['approval_date']);
     }
     if (field == '_requested_amount') {
       if (row['requested_amount'] != null) {
@@ -1406,7 +1419,7 @@ class _HqConsoleState extends State<HqConsole> {
           type == 'purchase'
               ? (db.payment(r)?['payment_date'])
               : ['approval', 'pending', 'approved', 'rejected'].contains(type)
-              ? (db.latestApproval(r['approval_id'])?['approval_date'])
+              ? r['approval_date']
               : (dateField == null ? null : r[dateField]),
         );
         if (d == null ||
@@ -2125,6 +2138,7 @@ class _HqConsoleState extends State<HqConsole> {
   final proposalContent = TextEditingController();
   final proposalAmount = TextEditingController();
   String? proposalEmployeeId;
+  DateTime? proposalCreatedAt;
   final proposalProducts = <String, HqRow>{};
   bool saving = false;
   Future<void> saveProposal() async {
@@ -2222,6 +2236,19 @@ class _HqConsoleState extends State<HqConsole> {
                   onChanged: saving
                       ? null
                       : (value) => setState(() => proposalEmployeeId = value),
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  initialValue: proposalCreatedAt?.toIso8601String().substring(
+                    0,
+                    10,
+                  ),
+                  readOnly: true,
+                  decoration: const InputDecoration(
+                    labelText: '작성일자',
+                    helperText: '저장 시 한국 시간 기준 작성일자가 자동 기록됩니다.',
+                    prefixIcon: Icon(Icons.calendar_today_outlined),
+                  ),
                 ),
                 const SizedBox(height: 16),
                 TextField(

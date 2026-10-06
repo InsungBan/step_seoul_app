@@ -14,7 +14,7 @@ COLUMNS.update({'manufacturing': ['shoe_shoe_id', 'shoe_manufacturer_manufacture
 
 OPTIONAL_COLUMNS = {
     'shipment': ['purchase_purchase_id'],
-    'approval': ['requested_amount'],
+    'approval': ['requested_amount', 'approval_date'],
     'purchase': ['store_store_id'],
     'purchase_order': ['is_auto', 'created_at'],
     'return_record': ['purchase_purchase_id', 'return_quantity', 'refund_refund_id'],

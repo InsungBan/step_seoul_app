@@ -63,7 +63,10 @@ class _LoginState extends State<Login> {
           Get.offAllNamed(AppRoutes.employeeWorkHome);
           return;
         case _LoginDestination.executive:
-          Get.offAllNamed(AppRoutes.executiveDashboard);
+          Get.offAllNamed(
+            AppRoutes.executiveDashboard,
+            arguments: _idController.text.trim(),
+          );
           return;
       }
     } on _LoginException catch (error) {
