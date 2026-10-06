@@ -10,6 +10,8 @@ import 'package:step_seoul_app/hq/hq_console.dart';
 import 'package:step_seoul_app/hq/hq_repository.dart';
 import 'package:step_seoul_app/hq/hq_view_data.dart';
 
+import 'package:step_seoul_app/view/auth/login.dart';
+
 Map<String, dynamic> snapshot() => {
   for (final t in [
     'shoe',
@@ -143,6 +145,7 @@ Map<String, dynamic> records() {
   ];
   return data;
 }
+
 
 http.Response response(Map<String, dynamic> data) => http.Response(
   jsonEncode({'result': data}),
@@ -368,6 +371,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(saved, isTrue);
     expect(tester.takeException(), isNull);
+  testWidgets('로그인 화면을 표시한다', (WidgetTester tester) async {
+    await tester.pumpWidget(const MaterialApp(home: Login()));
+
+    expect(find.text('STEP SEOUL'), findsOneWidget);
+    expect(find.text('로그인'), findsWidgets);
   });
   testWidgets(
     'Failed API shows retry, successful empty API shows missing data',
